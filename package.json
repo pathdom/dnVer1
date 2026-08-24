@@ -1,7 +1,7 @@
 {
-  "name": "vietbridge-education",
+  "name": "aladdin-education",
   "version": "1.0.0",
-  "description": "VietBridge Education Multi-Portal Web Suite (Admin, Staff, Student)",
+  "description": "ALADDIN Education Multi-Portal Web Suite (Admin, Staff, Student)",
   "main": "server/index.js",
   "scripts": {
     "start": "node start-all.js",

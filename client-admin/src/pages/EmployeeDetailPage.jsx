@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedStudentId }) {
   const [emp, setEmp] = useState(null);
@@ -7,7 +8,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
   useEffect(() => {
     setLoading(true);
     const targetId = empId || 'NV001';
-    fetch(`/api/employees/${targetId}`)
+    apiFetch(`/api/employees/${targetId}`)
       .then(res => {
         if (!res.ok) throw new Error('Employee not found');
         return res.json();
@@ -18,7 +19,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
       })
       .catch(err => {
         console.error('Error fetching employee detail:', err);
-        fetch('/api/employees')
+        apiFetch('/api/employees')
           .then(res => res.json())
           .then(d => {
             if (d.employees && d.employees.length > 0) {

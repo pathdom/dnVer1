@@ -2,13 +2,30 @@ import React, { useState } from 'react';
 import StaffLoginPage from './staff/StaffLoginPage';
 import StaffShell from './staff/StaffShell';
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [staffUser, setStaffUser] = useState(null);
+function readStoredStaff() {
+  try {
+    return JSON.parse(localStorage.getItem('aladdin_staff') || 'null');
+  } catch {
+    return null;
+  }
+}
 
-  const handleLoginSuccess = (user) => {
-    setStaffUser(user);
+export default function App() {
+  const [staffUser, setStaffUser] = useState(readStoredStaff);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('aladdin_token'));
+
+  const handleLoginSuccess = ({ token, staff }) => {
+    localStorage.setItem('aladdin_token', token);
+    localStorage.setItem('aladdin_staff', JSON.stringify(staff));
+    setStaffUser(staff);
     setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('aladdin_token');
+    localStorage.removeItem('aladdin_staff');
+    setStaffUser(null);
+    setIsLoggedIn(false);
   };
 
   return (
@@ -16,7 +33,7 @@ export default function App() {
       {!isLoggedIn ? (
         <StaffLoginPage onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <StaffShell profile={staffUser} onLogout={() => setIsLoggedIn(false)} />
+        <StaffShell profile={staffUser} onLogout={handleLogout} />
       )}
     </div>
   );

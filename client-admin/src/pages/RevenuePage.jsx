@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
 export default function RevenuePage() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/revenue')
+    apiFetch('/api/revenue')
       .then(res => res.json())
       .then(d => setData(d))
       .catch(err => console.error(err));

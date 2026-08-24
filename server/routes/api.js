@@ -136,26 +136,6 @@ router.get('/students/:id', async (req, res) => {
     `, [targetId, targetId]);
 
     if (rows.length === 0) {
-      const [firstRows] = await db.query('SELECT * FROM hoc_vien ORDER BY id ASC LIMIT 1');
-      if (firstRows.length > 0) {
-        const s = firstRows[0];
-        return res.json({
-          id: s.ma_hoc_vien || 'HV001',
-          name: s.ho_ten,
-          email: s.email || 'hocvien@aladdin.vn',
-          phone: s.so_dien_thoai || '0912345678',
-          hometown: s.que_quan || 'Hà Nội',
-          country: s.quoc_gia_den || 'Nhật Bản',
-          statusText: s.trang_thai_ho_so || 'Đang học tiếng',
-          program: s.lo_trinh || 'Hồ sơ du học',
-          ngayNhapHoc: '01/09/2026',
-          tienDaDongFormatted: formatVND(s.tien_da_dong),
-          tongTienFormatted: formatVND(s.tong_tien),
-          avatar: s.ho_ten ? s.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'HV',
-          joinedDate: '21/08/2026',
-          rep: 'Lê Thu Hà'
-        });
-      }
       return res.status(404).json({ error: 'Không tìm thấy học viên' });
     }
 
@@ -207,16 +187,13 @@ router.post('/students', async (req, res) => {
       return res.status(400).json({ error: 'Tên học viên là bắt buộc' });
     }
 
-    const [[{ maxId }]] = await db.query('SELECT COALESCE(MAX(id), 0) + 1 as maxId FROM hoc_vien');
-    const ma_hoc_vien = 'HV' + String(maxId).padStart(3, '0');
     const ngayNhapHocVal = ngayNhapHoc || new Date().toISOString().slice(0, 10);
 
     const [result] = await db.query(`
-      INSERT INTO hoc_vien 
-      (ma_hoc_vien, ho_ten, email, so_dien_thoai, que_quan, quoc_gia_den, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      INSERT INTO hoc_vien
+      (ho_ten, email, so_dien_thoai, que_quan, quoc_gia_den, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
-      ma_hoc_vien,
       name,
       email || null,
       phone || null,
@@ -228,6 +205,9 @@ router.post('/students', async (req, res) => {
       Number(tienDaDong) || 0,
       Number(tongTien) || 0
     ]);
+
+    const ma_hoc_vien = 'HV' + String(result.insertId).padStart(3, '0');
+    await db.query('UPDATE hoc_vien SET ma_hoc_vien = ? WHERE id = ?', [ma_hoc_vien, result.insertId]);
 
     res.status(201).json({
       success: true,
@@ -371,31 +351,10 @@ router.get('/employees/:id', async (req, res) => {
       WHERE ma_nhan_vien = ? OR id = ?
     `, [targetId, targetId]);
 
-    let emp = null;
-    if (rows.length > 0) {
-      emp = rows[0];
-    } else {
-      const [firstRows] = await db.query('SELECT * FROM nhan_vien ORDER BY id ASC LIMIT 1');
-      if (firstRows.length > 0) {
-        const e = firstRows[0];
-        emp = {
-          id: e.ma_nhan_vien || 'NV001',
-          name: e.ho_ten,
-          email: e.email || 'nhanvien@aladdin.vn',
-          phone: e.so_dien_thoai || '0911223344',
-          department: e.bo_phan || 'Tư vấn tuyển sinh',
-          role: e.chuc_danh || 'Chuyên viên tư vấn',
-          workType: e.hinh_thuc || 'Chính thức',
-          statusText: e.trang_thai || 'Đang làm việc',
-          startDate: '01/01/2025',
-          createdAt: '21/08/2026'
-        };
-      }
-    }
-
-    if (!emp) {
+    if (rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy nhân viên' });
     }
+    const emp = rows[0];
 
     // Lấy danh sách học viên do nhân viên này đảm nhận
     const [assignedStudents] = await db.query(`
@@ -450,16 +409,13 @@ router.post('/employees', async (req, res) => {
       return res.status(400).json({ error: 'Tên nhân viên là bắt buộc' });
     }
 
-    const [[{ maxId }]] = await db.query('SELECT COALESCE(MAX(id), 0) + 1 as maxId FROM nhan_vien');
-    const ma_nhan_vien = 'NV' + String(maxId).padStart(3, '0');
     const startDateVal = startDate || new Date().toISOString().slice(0, 10);
 
     const [result] = await db.query(`
-      INSERT INTO nhan_vien 
-      (ma_nhan_vien, ho_ten, email, so_dien_thoai, bo_phan, chuc_danh, hinh_thuc, trang_thai, ngay_vao_lam, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      INSERT INTO nhan_vien
+      (ho_ten, email, so_dien_thoai, bo_phan, chuc_danh, hinh_thuc, trang_thai, ngay_vao_lam, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
-      ma_nhan_vien,
       name,
       email || null,
       phone || null,
@@ -469,6 +425,9 @@ router.post('/employees', async (req, res) => {
       statusText || 'Đang làm việc',
       startDateVal
     ]);
+
+    const ma_nhan_vien = 'NV' + String(result.insertId).padStart(3, '0');
+    await db.query('UPDATE nhan_vien SET ma_nhan_vien = ? WHERE id = ?', [ma_nhan_vien, result.insertId]);
 
     res.status(201).json({
       success: true,

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 
-export default function Sidebar({ currentPage, setCurrentPage }) {
+export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout }) {
   const [stats, setStats] = useState({ totalStudents: '...', activeEmployees: '...', partnerSchools: '...' });
-  const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('vietbridge_logo') || null);
+  const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('aladdin_logo') || null);
 
   useEffect(() => {
-    fetch('/api/overview')
+    apiFetch('/api/overview')
       .then(res => res.json())
       .then(d => {
         if (d.stats) {
@@ -15,7 +16,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
       .catch(() => {});
 
     const handleLogoUpdate = () => {
-      setCompanyLogo(localStorage.getItem('vietbridge_logo') || null);
+      setCompanyLogo(localStorage.getItem('aladdin_logo') || null);
     };
     window.addEventListener('logoUpdated', handleLogoUpdate);
     return () => window.removeEventListener('logoUpdated', handleLogoUpdate);
@@ -34,7 +35,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
           </svg>
         )}
         <div className="brand-text">
-          <div className="brand-name">VietBridge</div>
+          <div className="brand-name">ALADDIN</div>
           <div className="brand-sub">EDUCATION GROUP</div>
         </div>
       </div>
@@ -137,11 +138,11 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="user-chip">
-          <div className="avatar">MH</div>
+        <div className="user-chip" onClick={onLogout} style={{ cursor: 'pointer' }} title="Đăng xuất">
+          <div className="avatar">{profile?.avatar || 'AD'}</div>
           <div className="user-chip-text">
-            <div className="user-chip-name">Minh Hằng</div>
-            <div className="user-chip-role">Quản trị viên</div>
+            <div className="user-chip-name">{profile?.name || 'Quản trị viên'}</div>
+            <div className="user-chip-role">{profile?.role || 'Quản trị viên'}</div>
           </div>
         </div>
       </div>

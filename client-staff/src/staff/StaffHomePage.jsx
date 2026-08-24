@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function StaffHomePage({ setCurrentPage }) {
   const [data, setData] = useState(null);
   const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
-    fetch('/api/staff/overview')
+    apiFetch('/api/staff/overview')
       .then(res => res.json())
       .then(d => {
         setData(d);

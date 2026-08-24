@@ -1,105 +1,87 @@
 import React from 'react';
 
+function formatVND(n) {
+  const num = Number(n) || 0;
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+}
+
+const STAGES = ['Tiếp nhận', 'Tư vấn & hồ sơ', 'Nộp hồ sơ', 'Kết quả Visa'];
+
+function getStageInfo(statusText) {
+  const st = (statusText || '').toLowerCase();
+  if (st.includes('hoãn')) return { index: -1, stamp: 'stamp-coral' };
+  if (st.includes('visa') || st.includes('tất')) return { index: 3, stamp: 'stamp-green' };
+  if (st.includes('nộp')) return { index: 2, stamp: 'stamp-teal' };
+  if (st.includes('tiếp')) return { index: 0, stamp: 'stamp-gold' };
+  return { index: 1, stamp: 'stamp-teal' };
+}
+
 export default function StudentProfilePage({ profile }) {
-  const p = profile || {
-    name: 'Nguyễn Thị Lan Anh',
-    id: 'HV-2451',
-    dob: '14/03/2005',
-    passport: 'P0123456',
-    email: 'lananh.nguyen@email.com',
-    phone: '0912 345 678',
-    school: 'Boston University',
-    degree: 'Cử nhân',
-    program: 'Quản trị Kinh doanh',
-    intake: 'Thu 2027 (09/2027)',
-    english: 'IELTS 7.0',
-    advisor: 'Trần Minh Khoa'
-  };
+  if (!profile) {
+    return (
+      <section className="portal-page active">
+        <div className="panel"><p style={{ color: 'var(--text-soft)' }}>Đang tải dữ liệu...</p></div>
+      </section>
+    );
+  }
+
+  const stage = getStageInfo(profile.statusText);
 
   return (
     <section className="portal-page active">
-      <div className="page-title-row">
-        <div>
-          <h1>Hồ sơ du học của tôi</h1>
-          <p>Thông tin cá nhân, chương trình học và tiến độ xử lý hồ sơ.</p>
+      <div className="panel">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: stage.index >= 0 ? '24px' : 0 }}>
+          <div className="panel-title" style={{ marginBottom: 0 }}>Tình trạng hồ sơ</div>
+          <span className={`stamp ${stage.stamp}`}>{profile.statusText || 'Đang cập nhật'}</span>
         </div>
+
+        {stage.index >= 0 && (
+          <div className="stepper-h">
+            {STAGES.map((label, idx) => (
+              <div key={label} className={`step-node ${idx < stage.index ? 'completed' : idx === stage.index ? 'active' : ''}`}>
+                <div className="step-circle">{idx < stage.index ? '✓' : idx + 1}</div>
+                <div className="step-label">{label}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid-2col">
-        <div className="col-stack">
-          <div className="panel">
-            <div className="panel-head"><h3>Thông tin cá nhân</h3></div>
-            <div className="info-grid">
-              <div className="info-item"><div className="info-label">Họ và tên</div><div className="info-value">{p.name}</div></div>
-              <div className="info-item"><div className="info-label">Mã học viên</div><div className="info-value">{p.id}</div></div>
-              <div className="info-item"><div className="info-label">Ngày sinh</div><div className="info-value">{p.dob}</div></div>
-              <div className="info-item"><div className="info-label">Số hộ chiếu</div><div className="info-value">{p.passport}</div></div>
-              <div className="info-item"><div className="info-label">Email</div><div className="info-value">{p.email}</div></div>
-              <div className="info-item"><div className="info-label">Số điện thoại</div><div className="info-value">{p.phone}</div></div>
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-head"><h3>Chương trình đăng ký</h3></div>
-            <div className="info-grid">
-              <div className="info-item"><div className="info-label">Trường</div><div className="info-value">{p.school}</div></div>
-              <div className="info-item"><div className="info-label">Bậc học</div><div className="info-value">{p.degree}</div></div>
-              <div className="info-item"><div className="info-label">Ngành học</div><div className="info-value">{p.program}</div></div>
-              <div className="info-item"><div className="info-label">Học kỳ nhập học</div><div className="info-value">{p.intake}</div></div>
-              <div className="info-item"><div className="info-label">Chứng chỉ tiếng Anh</div><div className="info-value">{p.english}</div></div>
-              <div className="info-item"><div className="info-label">Tư vấn viên phụ trách</div><div className="info-value">{p.advisor}</div></div>
-            </div>
+        <div className="panel">
+          <div className="panel-title">Thông tin cá nhân</div>
+          <div className="info-grid">
+            <div className="info-item"><div className="info-label">Họ và tên</div><div className="info-value">{profile.name}</div></div>
+            <div className="info-item"><div className="info-label">Mã học viên</div><div className="info-value">{profile.id}</div></div>
+            <div className="info-item"><div className="info-label">Email</div><div className="info-value">{profile.email || 'Chưa cập nhật'}</div></div>
+            <div className="info-item"><div className="info-label">Số điện thoại</div><div className="info-value">{profile.phone || 'Chưa cập nhật'}</div></div>
           </div>
         </div>
 
         <div className="panel">
-          <div className="panel-head"><h3>Tiến độ hồ sơ</h3></div>
-          <div className="stepper">
-            <div className="step done"><div className="step-line"></div><div className="step-circle">✓</div><div className="step-label">Tiếp nhận</div></div>
-            <div className="step done"><div className="step-line"></div><div className="step-circle">✓</div><div className="step-label">Tư vấn</div></div>
-            <div className="step done"><div className="step-line"></div><div className="step-circle">✓</div><div className="step-label">Nộp hồ sơ</div></div>
-            <div className="step current"><div className="step-line"></div><div className="step-circle">4</div><div className="step-label">Visa</div></div>
-            <div className="step"><div className="step-line"></div><div className="step-circle">5</div><div className="step-label">Lên đường</div></div>
-          </div>
-          <div className="stage-list">
-            <div className="stage-row">
-              <div className="stage-check done">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
-              </div>
-              <div>
-                <div className="stage-title">Nộp hồ sơ thành công</div>
-                <div className="stage-desc">Hoàn tất ngày 02/05/2026, đã được trường xác nhận tiếp nhận.</div>
-              </div>
-            </div>
-            <div className="stage-row">
-              <div className="stage-check done">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
-              </div>
-              <div>
-                <div className="stage-title">Phỏng vấn Visa thành công</div>
-                <div className="stage-desc">Hoàn tất ngày 20/07/2026, kết quả: được cấp Visa F-1.</div>
-              </div>
-            </div>
-            <div className="stage-row">
-              <div className="stage-check current">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><circle cx="12" cy="12" r="9"/></svg>
-              </div>
-              <div>
-                <div className="stage-title">Chờ xác nhận nhập học</div>
-                <div className="stage-desc">Đang chờ trường gửi thư xác nhận chính thức, dự kiến trước 01/09/2026.</div>
-              </div>
-            </div>
-            <div className="stage-row">
-              <div className="stage-check todo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><circle cx="12" cy="12" r="9"/></svg>
-              </div>
-              <div>
-                <div className="stage-title">Chuẩn bị lên đường</div>
-                <div className="stage-desc">Đặt vé máy bay, sắp xếp chỗ ở và tham gia buổi định hướng trước khi bay.</div>
-              </div>
-            </div>
+          <div className="panel-title">Chương trình đăng ký</div>
+          <div className="info-grid">
+            <div className="info-item"><div className="info-label">Quốc gia du học</div><div className="info-value">{profile.country || 'Chưa cập nhật'}</div></div>
+            <div className="info-item"><div className="info-label">Lộ trình / Chương trình</div><div className="info-value">{profile.program || 'Chưa cập nhật'}</div></div>
+            <div className="info-item"><div className="info-label">Ngày nhập học dự kiến</div><div className="info-value">{profile.ngayNhapHoc || 'Chưa cập nhật'}</div></div>
+            <div className="info-item"><div className="info-label">Học phí đã đóng</div><div className="info-value">{formatVND(profile.paidAmount)}</div></div>
           </div>
         </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title">Tư vấn viên phụ trách</div>
+        {profile.advisor ? (
+          <div className="info-grid">
+            <div className="info-item"><div className="info-label">Họ và tên</div><div className="info-value">{profile.advisor.name}</div></div>
+            <div className="info-item"><div className="info-label">Vai trò</div><div className="info-value">{profile.advisor.role}</div></div>
+            {profile.advisor.phone && (
+              <div className="info-item"><div className="info-label">Điện thoại liên hệ</div><div className="info-value">{profile.advisor.phone}</div></div>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: '13.5px', color: 'var(--text-soft)' }}>Hồ sơ của bạn chưa được phân công tư vấn viên phụ trách.</p>
+        )}
       </div>
     </section>
   );

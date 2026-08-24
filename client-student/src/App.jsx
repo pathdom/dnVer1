@@ -2,13 +2,30 @@ import React, { useState } from 'react';
 import StudentLoginPage from './student/StudentLoginPage';
 import StudentShell from './student/StudentShell';
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [studentUser, setStudentUser] = useState(null);
+function readStoredStudent() {
+  try {
+    return JSON.parse(localStorage.getItem('aladdin_student') || 'null');
+  } catch {
+    return null;
+  }
+}
 
-  const handleLoginSuccess = (user) => {
-    setStudentUser(user);
+export default function App() {
+  const [studentUser, setStudentUser] = useState(readStoredStudent);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('aladdin_token'));
+
+  const handleLoginSuccess = ({ token, student }) => {
+    localStorage.setItem('aladdin_token', token);
+    localStorage.setItem('aladdin_student', JSON.stringify(student));
+    setStudentUser(student);
     setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('aladdin_token');
+    localStorage.removeItem('aladdin_student');
+    setStudentUser(null);
+    setIsLoggedIn(false);
   };
 
   return (
@@ -18,8 +35,7 @@ export default function App() {
       ) : (
         <StudentShell
           profile={studentUser}
-          onLogout={() => setIsLoggedIn(false)}
-          onSwitchToAdmin={() => window.location.href = 'http://localhost:5173'}
+          onLogout={handleLogout}
         />
       )}
     </div>

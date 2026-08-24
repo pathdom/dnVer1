@@ -1,46 +1,41 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { requireAuth } = require('../middleware/auth');
 
-// Helper format VND
-function formatVND(val) {
-  const num = Number(val) || 0;
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
-}
-
-// Staff Login: Check DB table nhan_vien or admin
+// Staff Login: check DB table nhan_vien
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const [staffs] = await db.query('SELECT * FROM nhan_vien WHERE email = ?', [email]);
-    
-    if (staffs.length > 0) {
-      const s = staffs[0];
-      return res.json({
-        success: true,
-        token: 'staff-token-' + s.id,
-        staff: {
-          id: s.ma_nhan_vien || 'NV-' + s.id,
-          dbId: s.id,
-          name: s.ho_ten,
-          role: s.chuc_danh || s.bo_phan || 'Chuyên viên tư vấn',
-          email: s.email,
-          avatar: s.ho_ten ? s.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'NV',
-          assignedStudentsCount: 0
-        }
-      });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Thiếu email hoặc mật khẩu' });
     }
 
-    // Default fallback staff profile for testing
+    const [staffs] = await db.query('SELECT * FROM nhan_vien WHERE email = ?', [email]);
+    if (staffs.length === 0) {
+      return res.status(401).json({ success: false, error: 'Sai email hoặc mật khẩu' });
+    }
+
+    const s = staffs[0];
+    const match = await bcrypt.compare(password, s.password_hash || '');
+    if (!match) {
+      return res.status(401).json({ success: false, error: 'Sai email hoặc mật khẩu' });
+    }
+
+    const token = jwt.sign({ id: s.id, role: 'staff' }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({
       success: true,
-      token: 'staff-token-demo',
+      token,
       staff: {
-        id: 'NV001',
-        name: 'Lê Thu Hà',
-        role: 'Chuyên viên tư vấn',
-        email: email || 'ha.le@aladdin.vn',
-        avatar: 'LH'
+        id: s.ma_nhan_vien || 'NV-' + s.id,
+        dbId: s.id,
+        name: s.ho_ten,
+        role: s.chuc_danh || s.bo_phan || 'Chuyên viên tư vấn',
+        email: s.email,
+        avatar: s.ho_ten ? s.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'NV',
+        assignedStudentsCount: 0
       }
     });
   } catch (err) {
@@ -49,17 +44,19 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.use(requireAuth('staff'));
+
 // Staff Overview API from DB
 router.get('/overview', async (req, res) => {
   try {
     const [[{ totalAssigned }]] = await db.query('SELECT COUNT(*) as totalAssigned FROM hoc_vien');
     const [urgentList] = await db.query(`
-      SELECT 
-        ho_ten as name, 
-        quoc_gia_quan_tam as country, 
+      SELECT
+        ho_ten as name,
+        quoc_gia_quan_tam as country,
         trang_thai as statusText,
         ghi_chu as description
-      FROM khach_hang 
+      FROM khach_hang
       LIMIT 3
     `);
     const [todayTasks] = await db.query('SELECT id, ten_bai_test as title, ket_qua FROM test_nang_luc LIMIT 4');

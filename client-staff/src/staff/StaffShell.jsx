@@ -19,7 +19,7 @@ export default function StaffShell({ profile, onLogout }) {
             <circle cx="19" cy="14" r="3.2" fill="#DE9F3B"/>
           </svg>
           <div>
-            <div className="brand-name">VietBridge</div>
+            <div className="brand-name">ALADDIN</div>
             <div className="brand-sub">STAFF WORKSPACE</div>
           </div>
         </div>

@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
 
 export default function StudentLoginPage({ onLoginSuccess }) {
-  const [studentId, setStudentId] = useState('HV-2451');
-  const [password, setPassword] = useState('123456');
+  const [studentId, setStudentId] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     fetch('/api/student/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ studentId, password })
     })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          onLoginSuccess(data.student);
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        setLoading(false);
+        if (ok && data.success) {
+          onLoginSuccess(data);
+        } else {
+          setError(data.error || 'Đăng nhập thất bại');
         }
       })
       .catch(() => {
-        onLoginSuccess();
+        setLoading(false);
+        setError('Không thể kết nối tới máy chủ. Vui lòng thử lại.');
       });
   };
 
@@ -32,7 +40,7 @@ export default function StudentLoginPage({ onLoginSuccess }) {
             <path d="M4 30H34" stroke="rgba(255,255,255,0.25)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
           </svg>
           <div>
-            <div className="brand-name">VietBridge</div>
+            <div className="brand-name">ALADDIN</div>
             <div className="brand-sub">EDUCATION GROUP</div>
           </div>
         </div>
@@ -79,12 +87,13 @@ export default function StudentLoginPage({ onLoginSuccess }) {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {error && <p style={{ color: '#c0392b', fontSize: '13px', margin: '-6px 0 12px' }}>{error}</p>}
             <div className="form-row-between">
               <label className="remember"><input type="checkbox" defaultChecked style={{ accentColor: '#2A9D8F' }} />Ghi nhớ đăng nhập</label>
               <span className="forgot-link">Quên mật khẩu?</span>
             </div>
-            <button className="btn-block" type="submit">
-              Đăng nhập
+            <button className="btn-block" type="submit" disabled={loading}>
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
           </form>

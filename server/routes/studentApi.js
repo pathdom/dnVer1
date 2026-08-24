@@ -1,50 +1,45 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { requireAuth } = require('../middleware/auth');
 
-// Student Login: Check DB table hoc_vien
+// Student Login: check DB table hoc_vien
 router.post('/login', async (req, res) => {
   try {
     const { studentId, password } = req.body;
-    const [rows] = await db.query('SELECT * FROM hoc_vien WHERE ma_hoc_vien = ? OR email = ?', [studentId, studentId]);
-
-    if (rows.length > 0) {
-      const s = rows[0];
-      return res.json({
-        success: true,
-        token: 'student-token-' + s.id,
-        student: {
-          id: s.ma_hoc_vien || 'HV-' + s.id,
-          dbId: s.id,
-          name: s.ho_ten,
-          email: s.email,
-          phone: s.so_dien_thoai,
-          country: s.quoc_gia_den,
-          program: s.lo_trinh,
-          statusText: s.trang_thai_ho_so,
-          paidAmount: s.tien_da_dong,
-          totalAmount: s.tong_tien,
-          avatar: s.ho_ten ? s.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'HV'
-        }
-      });
+    if (!studentId || !password) {
+      return res.status(400).json({ success: false, error: 'Thiếu mã học viên hoặc mật khẩu' });
     }
 
-    // Default fallback student profile if not found
+    const [rows] = await db.query('SELECT * FROM hoc_vien WHERE ma_hoc_vien = ? OR email = ?', [studentId, studentId]);
+    if (rows.length === 0) {
+      return res.status(401).json({ success: false, error: 'Sai mã học viên hoặc mật khẩu' });
+    }
+
+    const s = rows[0];
+    const match = await bcrypt.compare(password, s.password_hash || '');
+    if (!match) {
+      return res.status(401).json({ success: false, error: 'Sai mã học viên hoặc mật khẩu' });
+    }
+
+    const token = jwt.sign({ id: s.id, role: 'student' }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({
       success: true,
-      token: 'mock-student-token-123',
+      token,
       student: {
-        id: studentId || 'HV-2451',
-        dbId: 1,
-        name: 'Nguyễn Thị Lan Anh',
-        email: 'lananh.nguyen@gmail.com',
-        phone: '0987.654.321',
-        country: 'Mỹ',
-        program: 'Cử nhân Quản trị Kinh doanh (BS in Business Administration)',
-        statusText: 'Đã có visa',
-        paidAmount: 120000000,
-        totalAmount: 150000000,
-        avatar: 'LA'
+        id: s.ma_hoc_vien || 'HV-' + s.id,
+        dbId: s.id,
+        name: s.ho_ten,
+        email: s.email,
+        phone: s.so_dien_thoai,
+        country: s.quoc_gia_den,
+        program: s.lo_trinh,
+        statusText: s.trang_thai_ho_so,
+        paidAmount: s.tien_da_dong,
+        totalAmount: s.tong_tien,
+        avatar: s.ho_ten ? s.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'HV'
       }
     });
   } catch (err) {
@@ -53,40 +48,44 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Student Profile API from DB
+router.use(requireAuth('student'));
+
+// Student Profile API from DB — scoped to the logged-in student
 router.get('/profile', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM hoc_vien LIMIT 1');
-    if (rows.length > 0) {
-      const s = rows[0];
-      return res.json({
-        id: s.ma_hoc_vien,
-        name: s.ho_ten,
-        email: s.email,
-        phone: s.so_dien_thoai,
-        country: s.quoc_gia_den,
-        program: s.lo_trinh,
-        statusText: s.trang_thai_ho_so,
-        progressPercent: 68,
-        paidAmount: s.tien_da_dong,
-        totalAmount: s.tong_tien,
-        advisor: {
-          name: 'Trần Minh Khoa',
-          role: 'Chuyên viên tư vấn hồ sơ Mỹ',
-          phone: '0909 123 456'
-        }
-      });
+    const [rows] = await db.query(`
+      SELECT
+        h.*,
+        IFNULL(DATE_FORMAT(h.ngay_nhap_hoc, '%d/%m/%Y'), '') as ngayNhapHocFormatted,
+        nv.ho_ten as advisorName,
+        nv.chuc_danh as advisorRole,
+        nv.bo_phan as advisorDept,
+        nv.so_dien_thoai as advisorPhone
+      FROM hoc_vien h
+      LEFT JOIN nhan_vien nv ON h.nhan_vien_id = nv.id
+      WHERE h.id = ?
+    `, [req.user.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy học viên' });
     }
 
+    const s = rows[0];
     res.json({
-      id: 'HV-2451',
-      name: 'Nguyễn Thị Lan Anh',
-      email: 'lananh.nguyen@gmail.com',
-      phone: '0987.654.321',
-      country: 'Mỹ',
-      program: 'Cử nhân Quản trị Kinh doanh',
-      statusText: 'Đang xử lý hồ sơ',
-      progressPercent: 68
+      id: s.ma_hoc_vien,
+      name: s.ho_ten,
+      email: s.email,
+      phone: s.so_dien_thoai,
+      country: s.quoc_gia_den,
+      program: s.lo_trinh,
+      statusText: s.trang_thai_ho_so,
+      ngayNhapHoc: s.ngayNhapHocFormatted,
+      paidAmount: s.tien_da_dong,
+      totalAmount: s.tong_tien,
+      advisor: s.advisorName ? {
+        name: s.advisorName,
+        role: s.advisorRole || s.advisorDept || 'Tư vấn viên phụ trách',
+        phone: s.advisorPhone
+      } : null
     });
   } catch (err) {
     console.error('Lỗi API /api/student/profile:', err);

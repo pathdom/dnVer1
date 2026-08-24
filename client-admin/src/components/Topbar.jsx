@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 export default function Topbar({ eyebrow, title, subtitle, searchPlaceholder, rightAction }) {
   const [isDark, setIsDark] = useState(() => {
-    return localStorage.getItem('vietbridge_theme') === 'dark';
+    return localStorage.getItem('aladdin_theme') === 'dark';
   });
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function Topbar({ eyebrow, title, subtitle, searchPlaceholder, ri
   const toggleTheme = () => {
     const nextDark = !isDark;
     setIsDark(nextDark);
-    localStorage.setItem('vietbridge_theme', nextDark ? 'dark' : 'light');
+    localStorage.setItem('aladdin_theme', nextDark ? 'dark' : 'light');
     if (nextDark) {
       document.documentElement.classList.add('dark-theme');
       document.body.classList.add('dark-theme');

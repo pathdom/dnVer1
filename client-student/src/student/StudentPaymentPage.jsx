@@ -1,61 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-export default function StudentPaymentPage() {
-  const [data, setData] = useState(null);
+function formatVND(n) {
+  const num = Number(n) || 0;
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+}
 
-  useEffect(() => {
-    fetch('/api/student/payments')
-      .then(res => res.json())
-      .then(d => setData(d))
-      .catch(err => console.error(err));
-  }, []);
-
-  const getStampClass = (status) => {
-    switch (status) {
-      case 'paid': return 'stamp stamp-green';
-      case 'urgent': return 'stamp stamp-coral';
-      case 'upcoming': return 'stamp stamp-gold';
-      default: return 'stamp stamp-gold';
-    }
-  };
+export default function StudentPaymentPage({ profile }) {
+  const total = Number(profile?.totalAmount) || 0;
+  const paid = Number(profile?.paidAmount) || 0;
+  const remaining = total - paid;
+  const percentPaid = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
   return (
     <section className="portal-page active">
-      <div className="page-title-row">
-        <div>
-          <h1>Học phí</h1>
-          <p>Theo dõi tiến độ thanh toán học phí và các khoản chi phí liên quan.</p>
+      <div className="quick-grid">
+        <div className="quick-card" style={{ cursor: 'default' }}>
+          <div className="quick-icon" style={{ background: '#E7EEFC' }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3B6FD1" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+          </div>
+          <div>
+            <div className="quick-title">{formatVND(total)}</div>
+            <div className="quick-sub">Tổng học phí chương trình</div>
+          </div>
+        </div>
+
+        <div className="quick-card" style={{ cursor: 'default' }}>
+          <div className="quick-icon" style={{ background: 'var(--green-soft)' }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <div>
+            <div className="quick-title">{formatVND(paid)}</div>
+            <div className="quick-sub">Đã thanh toán</div>
+          </div>
+        </div>
+
+        <div className="quick-card" style={{ cursor: 'default' }}>
+          <div className="quick-icon" style={{ background: 'var(--coral-soft)' }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div>
+            <div className="quick-title">{formatVND(remaining)}</div>
+            <div className="quick-sub">Còn lại</div>
+          </div>
         </div>
       </div>
 
-      <div className="pay-stat-grid">
-        <div className="pay-stat-card"><div className="lbl">Tổng học phí chương trình</div><div className="val">{data?.summary?.total || '1.2 tỷ ₫'}</div></div>
-        <div className="pay-stat-card"><div className="lbl">Đã thanh toán</div><div className="val" style={{ color: 'var(--green)' }}>{data?.summary?.paid || '300 triệu ₫'}</div></div>
-        <div className="pay-stat-card"><div className="lbl">Còn lại</div><div className="val" style={{ color: 'var(--coral)' }}>{data?.summary?.remaining || '900 triệu ₫'}</div></div>
-      </div>
-
       <div className="panel">
-        <div className="panel-head"><h3>Các đợt thanh toán</h3></div>
-        <table className="table">
-          <thead>
-            <tr><th>Đợt thanh toán</th><th>Số tiền</th><th>Hạn thanh toán</th><th>Trạng thái</th></tr>
-          </thead>
-          <tbody>
-            {(data?.installments || [
-              { desc: 'Đặt cọc giữ chỗ', amount: '50 triệu ₫', dueDate: '01/06/2026', status: 'paid', statusText: 'Đã thanh toán' },
-              { desc: 'Học phí kỳ 1 — đợt 1', amount: '250 triệu ₫', dueDate: '15/08/2026', status: 'paid', statusText: 'Đã thanh toán' },
-              { desc: 'Học phí kỳ 1 — đợt 2', amount: '300 triệu ₫', dueDate: '20/09/2026', status: 'urgent', statusText: 'Sắp đến hạn' },
-              { desc: 'Học phí kỳ 2', amount: '600 triệu ₫', dueDate: '15/01/2027', status: 'upcoming', statusText: 'Chưa đến hạn' }
-            ]).map((item, idx) => (
-              <tr key={idx}>
-                <td>{item.desc}</td>
-                <td>{item.amount}</td>
-                <td>{item.dueDate}</td>
-                <td><span className={getStampClass(item.status)}>{item.statusText}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="panel-title">Tiến độ thanh toán</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13.5px', fontWeight: 600, color: 'var(--navy)' }}>
+          <span>Đã đóng {percentPaid}%</span>
+          <span style={{ color: 'var(--text-soft)', fontWeight: 500 }}>{formatVND(paid)} / {formatVND(total)}</span>
+        </div>
+        <div className="progress-bar-track">
+          <div className="progress-bar-fill" style={{ width: `${percentPaid}%` }}></div>
+        </div>
+        <p style={{ fontSize: '13.5px', color: 'var(--text-soft)', marginTop: '20px', lineHeight: 1.6 }}>
+          Liên hệ tư vấn viên phụ trách nếu bạn cần thông tin chi tiết các đợt đóng học phí hoặc muốn cập nhật kế hoạch thanh toán.
+        </p>
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-export default function StaffLoginPage({ onLoginSuccess }) {
-  const [email, setEmail] = useState('');
+export default function AdminLoginPage({ onLoginSuccess }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -10,10 +10,10 @@ export default function StaffLoginPage({ onLoginSuccess }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    fetch('/api/staff/login', {
+    fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ username, password })
     })
       .then(res => res.json().then(data => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
@@ -33,47 +33,42 @@ export default function StaffLoginPage({ onLoginSuccess }) {
   return (
     <div className="login-page">
       <div className="login-brand">
-        <div className="brand">
+        <div className="login-brand-row">
           <svg width="36" height="36" viewBox="0 0 38 38" fill="none">
-            <path d="M4 26C4 26 10 14 19 14C28 14 34 26 34 26" stroke="#2A9D8F" strokeWidth="2.4" strokeLinecap="round"/>
+            <path d="M4 26C4 26 10 14 19 14C28 14 34 26 34 26" stroke="#4FC3B4" strokeWidth="2.4" strokeLinecap="round"/>
             <circle cx="19" cy="14" r="3.2" fill="#DE9F3B"/>
-            <path d="M4 30H34" stroke="rgba(24,38,68,0.12)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
+            <path d="M4 30H34" stroke="rgba(255,255,255,0.25)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
           </svg>
           <div>
-            <div className="brand-name">ALADDIN</div>
-            <div className="brand-sub">STAFF WORKSPACE</div>
+            <div className="login-brand-name">ALADDIN</div>
+            <div className="login-brand-sub">ADMIN WORKSPACE</div>
           </div>
         </div>
 
         <div className="login-brand-mid">
-          <h1>Không gian làm việc dành cho nhân viên ALADDIN.</h1>
-          <p>Quản lý học viên phụ trách, lịch tư vấn, công việc hằng ngày và trao đổi trực tiếp — gọn trong một nơi.</p>
-          <div className="brand-badge-row">
-            <div className="brand-badge"><b>32</b>Học viên</div>
-            <div className="brand-badge"><b>92%</b>Tỷ lệ visa</div>
-            <div className="brand-badge"><b>4.9★</b>Đánh giá</div>
-          </div>
+          <h1>Điều hành toàn bộ hệ thống ALADDIN Education.</h1>
+          <p>Quản lý học viên, nhân viên, trường đối tác, doanh thu và tài khoản người dùng — tất cả trong một nơi.</p>
         </div>
 
         <div className="login-role-note">
-          Dành riêng cho nhân viên ALADDIN Education · Đăng nhập bằng tài khoản nội bộ
+          Dành riêng cho quản trị viên ALADDIN Education · Đăng nhập bằng tài khoản quản trị
         </div>
       </div>
 
       <div className="login-form-panel">
         <div className="login-form-card">
-          <h2>Đăng nhập nhân viên</h2>
-          <p className="sub">Nhập tài khoản nội bộ để vào không gian làm việc của bạn.</p>
+          <h2>Đăng nhập quản trị</h2>
+          <p className="sub">Nhập tài khoản quản trị để vào bảng điều khiển.</p>
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Email nội bộ</label>
+              <label className="form-label">Tên đăng nhập</label>
               <input
                 className="form-input"
                 type="text"
-                placeholder="ten@aladdin.vn"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin_tong"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="form-group">
@@ -87,18 +82,11 @@ export default function StaffLoginPage({ onLoginSuccess }) {
               />
             </div>
             {error && <p style={{ color: '#c0392b', fontSize: '13px', margin: '-6px 0 12px' }}>{error}</p>}
-            <div className="form-row-between">
-              <label className="remember">
-                <input type="checkbox" defaultChecked style={{ accentColor: '#2A9D8F' }} />Ghi nhớ đăng nhập
-              </label>
-              <span className="forgot-link">Quên mật khẩu?</span>
-            </div>
             <button className="btn-block" type="submit" disabled={loading}>
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
           </form>
-          <p className="login-footer-note">Gặp sự cố đăng nhập? <a href="#it">Liên hệ phòng IT</a></p>
         </div>
       </div>
     </div>

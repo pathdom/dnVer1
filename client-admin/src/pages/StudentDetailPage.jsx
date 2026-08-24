@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function StudentDetailPage({ studentId, setCurrentPage }) {
   const [student, setStudent] = useState(null);
@@ -7,7 +8,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
   useEffect(() => {
     setLoading(true);
     const targetId = studentId || 'HV001';
-    fetch(`/api/students/${targetId}`)
+    apiFetch(`/api/students/${targetId}`)
       .then(res => {
         if (!res.ok) throw new Error('Student not found');
         return res.json();
@@ -19,7 +20,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
       .catch(err => {
         console.error('Error fetching student detail:', err);
         // Fallback: Lấy danh sách và chọn học viên đầu tiên
-        fetch('/api/students')
+        apiFetch('/api/students')
           .then(res => res.json())
           .then(d => {
             if (d.students && d.students.length > 0) {

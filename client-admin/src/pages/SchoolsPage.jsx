@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
 export default function SchoolsPage() {
   const [schools, setSchools] = useState([]);
 
   useEffect(() => {
-    fetch('/api/schools')
+    apiFetch('/api/schools')
       .then(res => res.json())
       .then(d => setSchools(d.schools))
       .catch(err => console.error(err));
@@ -16,7 +17,7 @@ export default function SchoolsPage() {
       <Topbar
         eyebrow={`${schools.length} đối tác`}
         title="Trường đối tác"
-        subtitle="Danh sách trường quốc tế đang liên kết tuyển sinh với VietBridge."
+        subtitle="Danh sách trường quốc tế đang liên kết tuyển sinh với ALADDIN."
         rightAction={
           <button className="btn-primary">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M12 5v14M5 12h14"/></svg>

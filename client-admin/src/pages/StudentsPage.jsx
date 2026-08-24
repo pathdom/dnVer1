@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
 export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
@@ -29,7 +30,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
 
   const fetchStudents = () => {
     setLoading(true);
-    fetch('/api/students')
+    apiFetch('/api/students')
       .then(res => res.json())
       .then(d => {
         setStudents(d.students || []);
@@ -84,7 +85,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
 
   const handleDeleteStudent = (student) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa học viên "${student.name}" (${student.id}) khỏi CSDL?`)) {
-      fetch(`/api/students/${student.id}`, { method: 'DELETE' })
+      apiFetch(`/api/students/${student.id}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -111,7 +112,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
     const url = isEdit ? `/api/students/${editingStudent.id}` : '/api/students';
     const method = isEdit ? 'PUT' : 'POST';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...formData, program: 'Hồ sơ du học' })

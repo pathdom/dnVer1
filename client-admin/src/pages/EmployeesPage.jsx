@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
 export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
@@ -28,7 +29,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
 
   const fetchEmployees = () => {
     setLoading(true);
-    fetch('/api/employees')
+    apiFetch('/api/employees')
       .then(res => res.json())
       .then(d => {
         setEmployees(d.employees || []);
@@ -81,7 +82,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
 
   const handleDeleteEmp = (emp) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa nhân viên "${emp.name}" (${emp.id}) khỏi CSDL?`)) {
-      fetch(`/api/employees/${emp.id}`, { method: 'DELETE' })
+      apiFetch(`/api/employees/${emp.id}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -108,7 +109,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
     const url = isEdit ? `/api/employees/${editingEmp.id}` : '/api/employees';
     const method = isEdit ? 'PUT' : 'POST';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

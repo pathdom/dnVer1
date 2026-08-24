@@ -1,6 +1,6 @@
 const { spawn } = require('child_process');
 
-console.log('🚀 Đang khởi chạy hệ thống VietBridge Full-stack (Backend + 3 Frontend Apps)...');
+console.log('🚀 Đang khởi chạy hệ thống ALADDIN Full-stack (Backend + 3 Frontend Apps)...');
 
 function runProc(name, cmd, args, cwd) {
   const proc = spawn(cmd, args, { cwd: cwd || process.cwd(), shell: true, stdio: 'inherit' });

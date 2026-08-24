@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar';
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('company');
   const [toggles, setToggles] = useState({ n1: true, n2: true, n3: true, n4: true, n5: false });
-  const [logo, setLogo] = useState(() => localStorage.getItem('vietbridge_logo') || null);
+  const [logo, setLogo] = useState(() => localStorage.getItem('aladdin_logo') || null);
   const [toastMessage, setToastMessage] = useState('');
   const fileInputRef = useRef(null);
 
@@ -24,7 +24,7 @@ export default function SettingsPage() {
       reader.onload = (event) => {
         const dataUrl = event.target.result;
         setLogo(dataUrl);
-        localStorage.setItem('vietbridge_logo', dataUrl);
+        localStorage.setItem('aladdin_logo', dataUrl);
         window.dispatchEvent(new Event('logoUpdated'));
         showToast('✅ Đã tải và thay đổi logo công ty thành công!');
       };
@@ -35,7 +35,7 @@ export default function SettingsPage() {
   const handleRemoveLogo = () => {
     if (window.confirm('Bạn có muốn khôi phục logo mặc định của hệ thống?')) {
       setLogo(null);
-      localStorage.removeItem('vietbridge_logo');
+      localStorage.removeItem('aladdin_logo');
       window.dispatchEvent(new Event('logoUpdated'));
       showToast('🔄 Đã khôi phục logo mặc định');
     }
@@ -118,12 +118,12 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Tên công ty</label><input type="text" defaultValue="Công ty CP Giáo dục VietBridge" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
+                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Tên công ty</label><input type="text" defaultValue="Công ty CP Giáo dục ALADDIN" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
                   <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Mã số thuế</label><input type="text" defaultValue="0109XXXXXX" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
                   <div className="form-field full" style={{ gridColumn: '1 / -1' }}><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Địa chỉ trụ sở</label><input type="text" defaultValue="Tầng 8, Tòa ABC, Q. Cầu Giấy, Hà Nội" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
                   <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Hotline</label><input type="text" defaultValue="1900 6868" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
-                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Email liên hệ</label><input type="text" defaultValue="lienhe@vietbridge.edu.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
-                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Website</label><input type="text" defaultValue="vietbridge.edu.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
+                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Email liên hệ</label><input type="text" defaultValue="lienhe@aladdin.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
+                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Website</label><input type="text" defaultValue="aladdin.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
                   <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Múi giờ</label><select style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px', background: '#fff' }}><option>(GMT+7) Hà Nội</option></select></div>
                 </div>
 
@@ -145,12 +145,12 @@ export default function SettingsPage() {
                   <div className="avatar" style={{ width: '56px', height: '56px', fontSize: '20px', borderRadius: '14px' }}>MH</div>
                   <div className="logo-upload-text">
                     <strong style={{ fontSize: '15px', color: 'var(--navy)' }}>Minh Hằng</strong>
-                    <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>Quản trị viên · minh.hang@vietbridge.edu.vn</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>Quản trị viên · minh.hang@aladdin.vn</div>
                   </div>
                 </div>
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Họ và tên</label><input type="text" defaultValue="Minh Hằng" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
-                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Email</label><input type="text" defaultValue="minh.hang@vietbridge.edu.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
+                  <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Email</label><input type="text" defaultValue="minh.hang@aladdin.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
                   <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Số điện thoại</label><input type="text" defaultValue="0987 654 321" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px' }} /></div>
                   <div className="form-field"><label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', marginBottom: '6px' }}>Vai trò</label><input type="text" defaultValue="Quản trị viên" disabled style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--bg)' }} /></div>
                 </div>
@@ -167,12 +167,12 @@ export default function SettingsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div className="role-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg)', borderRadius: '10px' }}>
                     <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px' }}>MH</div>
-                    <div><div style={{ fontWeight: '700', color: 'var(--navy)' }}>Minh Hằng</div><div style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>minh.hang@vietbridge.edu.vn</div></div>
+                    <div><div style={{ fontWeight: '700', color: 'var(--navy)' }}>Minh Hằng</div><div style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>minh.hang@aladdin.vn</div></div>
                     <span className="role-badge" style={{ marginLeft: 'auto', background: 'var(--navy)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>Quản trị viên</span>
                   </div>
                   <div className="role-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg)', borderRadius: '10px' }}>
                     <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px' }}>TK</div>
-                    <div><div style={{ fontWeight: '700', color: 'var(--navy)' }}>Trần Minh Khoa</div><div style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>khoa.tran@vietbridge.edu.vn</div></div>
+                    <div><div style={{ fontWeight: '700', color: 'var(--navy)' }}>Trần Minh Khoa</div><div style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>khoa.tran@aladdin.vn</div></div>
                     <span className="role-badge" style={{ marginLeft: 'auto', background: 'var(--teal-soft)', color: 'var(--teal)', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>Trưởng nhóm tư vấn</span>
                   </div>
                 </div>

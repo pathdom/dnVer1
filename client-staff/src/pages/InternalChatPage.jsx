@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
 export default function InternalChatPage() {
@@ -12,7 +13,7 @@ export default function InternalChatPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    fetch('/api/chat/channels')
+    apiFetch('/api/chat/channels')
       .then(res => res.json())
       .then(data => {
         setChannels(data);
@@ -25,7 +26,7 @@ export default function InternalChatPage() {
 
   useEffect(() => {
     if (activeChannel) {
-      fetch(`/api/chat/messages/${activeChannel.id}`)
+      apiFetch(`/api/chat/messages/${activeChannel.id}`)
         .then(res => res.json())
         .then(msgs => setMessages(msgs))
         .catch(err => console.error(err));
@@ -35,7 +36,7 @@ export default function InternalChatPage() {
   const handleSendMessage = () => {
     if (!inputText.trim() || !activeChannel) return;
 
-    fetch(`/api/chat/messages/${activeChannel.id}`, {
+    apiFetch(`/api/chat/messages/${activeChannel.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: inputText })

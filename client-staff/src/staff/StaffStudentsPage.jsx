@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function StaffStudentsPage() {
   const [students, setStudents] = useState([]);
@@ -26,7 +27,7 @@ export default function StaffStudentsPage() {
 
   const fetchStudents = () => {
     setLoading(true);
-    fetch('/api/students')
+    apiFetch('/api/students')
       .then(res => res.json())
       .then(data => {
         setStudents(data.students || []);
@@ -81,7 +82,7 @@ export default function StaffStudentsPage() {
 
   const handleDeleteStudent = (student) => {
     if (window.confirm(`Bạn có chắc chắn muốn xóa học viên "${student.name}" (${student.id}) khỏi CSDL?`)) {
-      fetch(`/api/students/${student.id}`, { method: 'DELETE' })
+      apiFetch(`/api/students/${student.id}`, { method: 'DELETE' })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -108,7 +109,7 @@ export default function StaffStudentsPage() {
     const url = isEdit ? `/api/students/${editingStudent.id}` : '/api/students';
     const method = isEdit ? 'PUT' : 'POST';
 
-    fetch(url, {
+    apiFetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...formData, program: 'Hồ sơ du học' })

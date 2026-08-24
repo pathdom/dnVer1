@@ -10,7 +10,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
           <path d="M4 30H34" stroke="rgba(255,255,255,0.25)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
         </svg>
         <div className="brand-text">
-          <div className="brand-name">VietBridge</div>
+          <div className="brand-name">ALADDIN</div>
           <div className="brand-sub">EDUCATION GROUP</div>
         </div>
       </div>

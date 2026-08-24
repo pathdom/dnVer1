@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function StaffPerformancePage() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('/api/staff/performance')
+    apiFetch('/api/staff/performance')
       .then(res => res.json())
       .then(d => setData(d))
       .catch(err => console.error(err));

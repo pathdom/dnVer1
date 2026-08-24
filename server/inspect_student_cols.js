@@ -1,19 +1,12 @@
-const mysql = require('mysql2/promise');
+const db = require('./db');
 
 async function inspectStudentCols() {
   try {
-    const connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: 'mmm1108',
-      database: 'quan_ly_trung_tam'
-    });
-
-    const [rows] = await connection.query('SELECT id, ma_hoc_vien, ho_ten, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at FROM hoc_vien');
+    const [rows] = await db.query('SELECT id, ma_hoc_vien, ho_ten, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at FROM hoc_vien');
     console.log('RAW HOC_VIEN ROWS FROM DB:');
     console.log(rows);
 
-    await connection.end();
+    await db.end();
   } catch (err) {
     console.error('Error:', err.message);
   }

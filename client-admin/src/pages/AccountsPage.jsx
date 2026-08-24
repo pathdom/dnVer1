@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import Topbar from '../components/Topbar';
 
 const INITIAL_ACCOUNTS = [
-  { id: 1, type: 'staff', name: 'Minh Hằng', email: 'admin@vietbridge.edu.vn', role: 'Quản trị viên', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 09:12', avatar: 'MH' },
-  { id: 2, type: 'staff', name: 'Trần Minh Khoa', email: 'khoa.tran@vietbridge.edu.vn', role: 'Trưởng nhóm tư vấn', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 08:40', avatar: 'TK' },
-  { id: 3, type: 'staff', name: 'Lê Thị Hồng', email: 'hong.le@vietbridge.edu.vn', role: 'Tư vấn viên', status: 'active', statusText: 'Đang hoạt động', lastLogin: '18/08/2026 17:02', avatar: 'LH' },
-  { id: 4, type: 'staff', name: 'Phạm Thị Yến', email: 'yen.pham@vietbridge.edu.vn', role: 'Chuyên viên hồ sơ', status: 'locked', statusText: 'Đã khóa', lastLogin: '10/08/2026 14:30', avatar: 'PY' },
+  { id: 1, type: 'staff', name: 'Minh Hằng', email: 'admin@aladdin.vn', role: 'Quản trị viên', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 09:12', avatar: 'MH' },
+  { id: 2, type: 'staff', name: 'Trần Minh Khoa', email: 'khoa.tran@aladdin.vn', role: 'Trưởng nhóm tư vấn', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 08:40', avatar: 'TK' },
+  { id: 3, type: 'staff', name: 'Lê Thị Hồng', email: 'hong.le@aladdin.vn', role: 'Tư vấn viên', status: 'active', statusText: 'Đang hoạt động', lastLogin: '18/08/2026 17:02', avatar: 'LH' },
+  { id: 4, type: 'staff', name: 'Phạm Thị Yến', email: 'yen.pham@aladdin.vn', role: 'Chuyên viên hồ sơ', status: 'locked', statusText: 'Đã khóa', lastLogin: '10/08/2026 14:30', avatar: 'PY' },
   { id: 5, type: 'student', name: 'Nguyễn Thị Lan Anh', email: 'lananh.nguyen@email.com', role: 'Mã HV-2451', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 07:55', avatar: 'LA' },
   { id: 6, type: 'student', name: 'Phạm Đức Huy', email: 'duchuy.pham@email.com', role: 'Mã HV-2452', status: 'active', statusText: 'Đang hoạt động', lastLogin: '17/08/2026 20:11', avatar: 'ĐH' },
   { id: 7, type: 'student', name: 'Vũ Ngọc Mai', email: 'ngocmai.vu@email.com', role: 'Mã HV-2453', status: 'pending', statusText: 'Chờ kích hoạt', lastLogin: 'Chưa đăng nhập', avatar: 'NM' },
@@ -24,7 +24,7 @@ export default function AccountsPage() {
   // Form States
   const [staffForm, setStaffForm] = useState({ name: '', email: '', dept: 'Tư vấn tuyển sinh', role: 'Nhân viên', password: 'Vb7x92Km' });
   const [studentForm, setStudentForm] = useState({ student: 'Nguyễn Thị Lan Anh — HV-2451', email: '', password: 'Hs4mQ81p' });
-  const [resetStaffForm, setResetStaffForm] = useState({ staff: 'Minh Hằng — admin@vietbridge.edu.vn', password: 'Kt2vB58r' });
+  const [resetStaffForm, setResetStaffForm] = useState({ staff: 'Minh Hằng — admin@aladdin.vn', password: 'Kt2vB58r' });
   const [resetStudentForm, setResetStudentForm] = useState({ student: 'Nguyễn Thị Lan Anh — HV-2451', password: 'Sv9pL34w' });
 
   const showToast = (msg) => {
@@ -74,7 +74,7 @@ export default function AccountsPage() {
       id: Date.now(),
       type: 'staff',
       name: staffForm.name.trim(),
-      email: staffForm.email.trim() || 'nhanvien@vietbridge.edu.vn',
+      email: staffForm.email.trim() || 'nhanvien@aladdin.vn',
       role: staffForm.role,
       status: 'active',
       statusText: 'Đang hoạt động',
@@ -297,7 +297,7 @@ export default function AccountsPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Email nội bộ</label>
-                <input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })} placeholder="ten@vietbridge.edu.vn" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
+                <input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })} placeholder="ten@aladdin.vn" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
@@ -386,10 +386,10 @@ export default function AccountsPage() {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Chọn nhân viên</label>
                 <select value={resetStaffForm.staff} onChange={e => setResetStaffForm({ ...resetStaffForm, staff: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                  <option>Minh Hằng — admin@vietbridge.edu.vn</option>
-                  <option>Trần Minh Khoa — khoa.tran@vietbridge.edu.vn</option>
-                  <option>Lê Thị Hồng — hong.le@vietbridge.edu.vn</option>
-                  <option>Phạm Thị Yến — yen.pham@vietbridge.edu.vn</option>
+                  <option>Minh Hằng — admin@aladdin.vn</option>
+                  <option>Trần Minh Khoa — khoa.tran@aladdin.vn</option>
+                  <option>Lê Thị Hồng — hong.le@aladdin.vn</option>
+                  <option>Phạm Thị Yến — yen.pham@aladdin.vn</option>
                 </select>
               </div>
               <div>

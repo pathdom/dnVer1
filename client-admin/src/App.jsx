@@ -11,15 +11,44 @@ import RevenuePage from './pages/RevenuePage';
 import AccountsPage from './pages/AccountsPage';
 import SettingsPage from './pages/SettingsPage';
 import InternalChatPage from './pages/InternalChatPage';
+import AdminLoginPage from './admin/AdminLoginPage';
+
+function readStoredAdmin() {
+  try {
+    return JSON.parse(localStorage.getItem('aladdin_admin') || 'null');
+  } catch {
+    return null;
+  }
+}
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('overview');
   const [selectedStudentId, setSelectedStudentId] = useState('HV001');
   const [selectedEmpId, setSelectedEmpId] = useState('NV001');
+  const [adminUser, setAdminUser] = useState(readStoredAdmin);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('aladdin_token'));
+
+  const handleLoginSuccess = ({ token, admin }) => {
+    localStorage.setItem('aladdin_token', token);
+    localStorage.setItem('aladdin_admin', JSON.stringify(admin));
+    setAdminUser(admin);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('aladdin_token');
+    localStorage.removeItem('aladdin_admin');
+    setAdminUser(null);
+    setIsLoggedIn(false);
+  };
+
+  if (!isLoggedIn) {
+    return <AdminLoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="app">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} profile={adminUser} onLogout={handleLogout} />
       <main className="main">
         {currentPage === 'overview' && (
           <OverviewPage setCurrentPage={setCurrentPage} setSelectedStudentId={setSelectedStudentId} />
