@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import StaffHomePage from './StaffHomePage';
 import StaffStudentsPage from './StaffStudentsPage';
 import StaffApptPage from './StaffApptPage';
 import StaffTasksPage from './StaffTasksPage';
 import StaffChatPage from './StaffChatPage';
 import StaffPerformancePage from './StaffPerformancePage';
-import InternalChatPage from '../pages/InternalChatPage';
+import ChatWidget from '../chat-widget/ChatWidget';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function StaffShell({ profile, onLogout }) {
   const [currentPage, setCurrentPage] = useState('home');
+  const [chatUnread, setChatUnread] = useState(0);
+
+  useEffect(() => {
+    let stop = false;
+    function poll() {
+      apiFetch('/api/chat/conversations')
+        .then(res => res.json())
+        .then(d => {
+          if (stop) return;
+          const total = (d.conversations || []).reduce((a, c) => a + (c.unread || 0), 0);
+          setChatUnread(total);
+        })
+        .catch(() => {});
+    }
+    poll();
+    const t = setInterval(poll, 15000);
+    return () => { stop = true; clearInterval(t); };
+  }, []);
 
   return (
     <div className="app active">
@@ -48,8 +67,8 @@ export default function StaffShell({ profile, onLogout }) {
             Tin nhắn học viên<span className="count">3</span>
           </button>
           <button className={`nav-item ${currentPage === 'internalchat' ? 'active' : ''}`} onClick={() => setCurrentPage('internalchat')}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 1-0 3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Chat nội bộ<span className="count">6</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Chat nội bộ{chatUnread > 0 && <span className="count">{chatUnread}</span>}
           </button>
           <button className={`nav-item ${currentPage === 'performance' ? 'active' : ''}`} onClick={() => setCurrentPage('performance')}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
@@ -74,8 +93,8 @@ export default function StaffShell({ profile, onLogout }) {
         {currentPage === 'appt' && <StaffApptPage />}
         {currentPage === 'tasks' && <StaffTasksPage />}
         {currentPage === 'chat' && <StaffChatPage />}
-        {currentPage === 'internalchat' && <InternalChatPage />}
         {currentPage === 'performance' && <StaffPerformancePage />}
+        {currentPage === 'internalchat' && <ChatWidget profile={profile} />}
       </main>
     </div>
   );

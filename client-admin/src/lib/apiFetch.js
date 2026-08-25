@@ -1,7 +1,8 @@
 export async function apiFetch(path, opts = {}) {
   const token = localStorage.getItem('aladdin_token');
+  const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
   const headers = {
-    ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(opts.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...opts.headers
   };

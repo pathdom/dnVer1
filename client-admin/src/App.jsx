@@ -10,8 +10,8 @@ import ConsultPage from './pages/ConsultPage';
 import RevenuePage from './pages/RevenuePage';
 import AccountsPage from './pages/AccountsPage';
 import SettingsPage from './pages/SettingsPage';
-import InternalChatPage from './pages/InternalChatPage';
 import AdminLoginPage from './admin/AdminLoginPage';
+import ChatWidget from './chat-widget/ChatWidget';
 
 function readStoredAdmin() {
   try {
@@ -70,7 +70,12 @@ export default function App() {
         {currentPage === 'revenue' && <RevenuePage />}
         {currentPage === 'accounts' && <AccountsPage />}
         {currentPage === 'settings' && <SettingsPage />}
-        {currentPage === 'internalchat' && <InternalChatPage />}
+        {currentPage === 'internalchat' && (
+          <ChatWidget
+            profile={adminUser}
+            onViewEmployee={(id) => { setSelectedEmpId(id); setCurrentPage('employee-detail'); }}
+          />
+        )}
       </main>
     </div>
   );

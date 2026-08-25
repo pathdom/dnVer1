@@ -513,20 +513,22 @@ router.delete('/employees/:id', async (req, res) => {
 router.get('/schools', async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT 
-        id,
-        ma_du_an as maDuAn,
-        ten_du_an as name,
-        quoc_gia as country,
-        IFNULL(DATE_FORMAT(ngay_bat_dau, '%d/%m/%Y'), '01/01/2026') as startDate,
-        IFNULL(DATE_FORMAT(ngay_ket_thuc, '%d/%m/%Y'), '31/12/2026') as endDate,
-        chi_tieu_so_luong as quota,
-        ngan_sach as budget,
-        nguoi_quan_ly_id as managerId,
-        trang_thai as statusText,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
-      FROM du_an
-      ORDER BY id DESC
+      SELECT
+        d.id,
+        d.ma_du_an as maDuAn,
+        d.ten_du_an as name,
+        d.quoc_gia as country,
+        IFNULL(DATE_FORMAT(d.ngay_bat_dau, '%d/%m/%Y'), '01/01/2026') as startDate,
+        IFNULL(DATE_FORMAT(d.ngay_ket_thuc, '%d/%m/%Y'), '31/12/2026') as endDate,
+        d.chi_tieu_so_luong as quota,
+        d.ngan_sach as budget,
+        d.nguoi_quan_ly_id as managerId,
+        nv.ho_ten as managerName,
+        d.trang_thai as statusText,
+        IFNULL(DATE_FORMAT(d.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM du_an d
+      LEFT JOIN nhan_vien nv ON nv.id = d.nguoi_quan_ly_id
+      ORDER BY d.id DESC
     `);
 
     const schools = rows.map(s => ({
