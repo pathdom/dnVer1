@@ -6,11 +6,13 @@ import StaffTasksPage from './StaffTasksPage';
 import StaffChatPage from './StaffChatPage';
 import StaffPerformancePage from './StaffPerformancePage';
 import ChatWidget from '../chat-widget/ChatWidget';
+import ProfileMenu from '../components/ProfileMenu';
 import { apiFetch } from '../lib/apiFetch';
 
-export default function StaffShell({ profile, onLogout }) {
+export default function StaffShell({ profile, onLogout, onAvatarChange }) {
   const [currentPage, setCurrentPage] = useState('home');
   const [chatUnread, setChatUnread] = useState(0);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     let stop = false;
@@ -77,14 +79,22 @@ export default function StaffShell({ profile, onLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-chip" onClick={onLogout} style={{ cursor: 'pointer' }} title="Đăng xuất">
-            <div className="avatar">{profile?.avatar || 'TK'}</div>
+          <div className="user-chip" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }} title="Hồ sơ & đăng xuất">
+            <div className="avatar" style={{ overflow: 'hidden' }}>
+              {profile?.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (profile?.avatar || 'TK')}
+            </div>
             <div>
               <div className="user-chip-name">{profile?.name || 'Trần Minh Khoa'}</div>
               <div className="user-chip-role">{profile?.role || 'Trưởng nhóm tư vấn'}</div>
             </div>
           </div>
         </div>
+
+        {showProfile && (
+          <ProfileMenu profile={profile} onClose={() => setShowProfile(false)} onLogout={onLogout} onAvatarChange={onAvatarChange} />
+        )}
       </aside>
 
       <main className="main">

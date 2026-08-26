@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
+import ProfileMenu from './ProfileMenu';
 
-export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout }) {
-  const [stats, setStats] = useState({ totalStudents: '...', activeEmployees: '...', partnerSchools: '...' });
+export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout, onAvatarChange }) {
+  const [stats, setStats] = useState({ totalStudents: '...', activeEmployees: '...', partnerSchools: '...', totalCustomers: '...' });
   const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('aladdin_logo') || null);
   const [chatUnread, setChatUnread] = useState(0);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/overview')
@@ -92,6 +94,16 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
         </button>
 
         <button
+          className={`nav-item ${currentPage === 'customers' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('customers')}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Quản lý khách hàng<span className="count">{stats.totalCustomers}</span>
+        </button>
+
+        <button
           className={`nav-item ${currentPage === 'schools' ? 'active' : ''}`}
           onClick={() => setCurrentPage('schools')}
         >
@@ -156,14 +168,22 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
       </nav>
 
       <div className="sidebar-footer">
-        <div className="user-chip" onClick={onLogout} style={{ cursor: 'pointer' }} title="Đăng xuất">
-          <div className="avatar">{profile?.avatar || 'AD'}</div>
+        <div className="user-chip" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }} title="Hồ sơ & đăng xuất">
+          <div className="avatar" style={{ overflow: 'hidden' }}>
+            {profile?.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (profile?.avatar || 'AD')}
+          </div>
           <div className="user-chip-text">
             <div className="user-chip-name">{profile?.name || 'Quản trị viên'}</div>
             <div className="user-chip-role">{profile?.role || 'Quản trị viên'}</div>
           </div>
         </div>
       </div>
+
+      {showProfile && (
+        <ProfileMenu profile={profile} onClose={() => setShowProfile(false)} onLogout={onLogout} onAvatarChange={onAvatarChange} />
+      )}
     </aside>
   );
 }

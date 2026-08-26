@@ -71,6 +71,7 @@ async function hydrateMessage(m, viewerRole, viewerId) {
     conversationId: m.conversation_id,
     author: author ? author.name : 'Người dùng',
     initials: author ? author.initials : '?',
+    avatarUrl: deleted ? undefined : (author ? author.avatarUrl : undefined),
     me: m.sender_role === viewerRole && m.sender_id === viewerId,
     time: formatTime(m.created_at),
     deleted,
@@ -119,12 +120,13 @@ router.get('/conversations', async (req, res) => {
          WHERE conversation_id = ? AND NOT (user_role = ? AND user_id = ?)`,
         [c.id, role, id]
       );
-      let name = c.name, initials = initialsOf(c.name, 'NH'), otherRole, otherId;
+      let name = c.name, initials = initialsOf(c.name, 'NH'), avatarUrl, otherRole, otherId;
       if (c.kind === 'dm') {
         const other = others[0];
         const otherUser = other ? await getUser(other.user_role, other.user_id) : null;
         name = otherUser ? otherUser.name : 'Người dùng';
         initials = otherUser ? otherUser.initials : '?';
+        avatarUrl = otherUser ? otherUser.avatarUrl : undefined;
         if (other) { otherRole = other.user_role; otherId = other.user_id; }
       }
       const [msgRows] = await db.query(
@@ -143,6 +145,7 @@ router.get('/conversations', async (req, res) => {
         kind: c.kind,
         name,
         initials,
+        avatarUrl,
         otherRole,
         otherId,
         members: c.kind === 'group' ? others.length + 1 : undefined,
@@ -462,6 +465,7 @@ router.get('/messages/:id/thread', async (req, res) => {
         id: t.id,
         author: author ? author.name : 'Người dùng',
         initials: author ? author.initials : '?',
+        avatarUrl: author ? author.avatarUrl : undefined,
         me: t.sender_role === role && t.sender_id === id,
         time: formatTime(t.created_at),
         text: t.text

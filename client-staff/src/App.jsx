@@ -28,12 +28,20 @@ export default function App() {
     setIsLoggedIn(false);
   };
 
+  const handleAvatarChange = (avatarUrl) => {
+    setStaffUser(prev => {
+      const next = { ...prev, avatarUrl };
+      localStorage.setItem('aladdin_staff', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <div>
       {!isLoggedIn ? (
         <StaffLoginPage onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <StaffShell profile={staffUser} onLogout={handleLogout} />
+        <StaffShell profile={staffUser} onLogout={handleLogout} onAvatarChange={handleAvatarChange} />
       )}
     </div>
   );

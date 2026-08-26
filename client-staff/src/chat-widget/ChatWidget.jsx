@@ -24,6 +24,13 @@ function initialsOf(name, fallback) {
   if (!name) return fallback;
   return name.split(' ').filter(Boolean).slice(-2).map(w => w[0]).join('').toUpperCase();
 }
+function Avatar({ url, initials, className }) {
+  return (
+    <div className={className} style={{ overflow: 'hidden' }}>
+      {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+    </div>
+  );
+}
 function deptTagStyle(dept = '') {
   if (dept.includes('Tư vấn')) return { background: 'var(--teal-soft)', color: 'var(--teal)' };
   if (dept.includes('Hồ sơ')) return { background: '#E7EEFC', color: '#3B6FD1' };
@@ -379,7 +386,7 @@ export default function ChatWidget({ profile, onViewEmployee }) {
       <div className="cw-panel">
         <div className="cw-rail">
           <div className="cw-rail-top">
-            <div className="cw-av cw-av-32 cw-av-me">{meInitials}</div>
+            <Avatar url={profile?.avatarUrl} initials={meInitials} className="cw-av cw-av-32 cw-av-me" />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="cw-me-name">{meName}</div>
               <div className="cw-me-sub"><span className="cw-dot" />Đang hoạt động</div>
@@ -429,7 +436,7 @@ export default function ChatWidget({ profile, onViewEmployee }) {
                 {group.items.map(p => (
                   <button key={p.role + p.id} className="cw-hit" onClick={() => startDm(p)}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <div className="cw-av cw-av-26">{p.initials}</div>
+                      <Avatar url={p.avatarUrl} initials={p.initials} className="cw-av cw-av-26" />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div className="cw-hit-t">{p.name}</div>
                         <div className="cw-hit-x">{p.roleLabel}</div>
@@ -450,7 +457,7 @@ export default function ChatWidget({ profile, onViewEmployee }) {
           ) : (
             <>
               <div className="cw-chat-head">
-                <div className="cw-av cw-av-34">{activeConv.initials}</div>
+                <Avatar url={activeConv.avatarUrl} initials={activeConv.initials} className="cw-av cw-av-34" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="cw-chat-name">{activeConv.name}</div>
                   <div className="cw-chat-sub">{activeConv.kind === 'group' ? (activeConv.members + ' thành viên') : 'Trò chuyện trực tiếp'}</div>
@@ -558,7 +565,7 @@ export default function ChatWidget({ profile, onViewEmployee }) {
                   <div className="cw-pop cw-mention">
                     {mentionList.map(p => (
                       <button key={p.role + p.id} onClick={() => pickMention(p.name)}>
-                        <div className="cw-av cw-av-24">{p.initials}</div>
+                        <Avatar url={p.avatarUrl} initials={p.initials} className="cw-av cw-av-24" />
                         <span className="cw-n">{p.name}</span>
                         <span className="cw-r">{p.roleLabel}</span>
                       </button>
@@ -626,7 +633,7 @@ function ConvRow({ c, active, onSelect, onPin, onLeave }) {
   return (
     <div className={'cw-conv' + (active ? ' cw-on' : '')}>
       <button className="cw-conv-btn" onClick={() => onSelect(c.id)}>
-        <div className="cw-av cw-av-32">{c.initials}</div>
+        <Avatar url={c.avatarUrl} initials={c.initials} className="cw-av cw-av-32" />
         <div className="cw-conv-mid">
           <div className="cw-conv-top">
             <span className="cw-conv-name">{c.name}</span>
@@ -648,7 +655,7 @@ function MessageRow({ m, isLastMine, reactBarId, onReactBar, onQuickReact, onRep
   return (
     <div className="cw-msg">
       <div className={'cw-row' + (m.me ? ' cw-mine' : '')}>
-        <div className="cw-av cw-av-28">{m.initials}</div>
+        <Avatar url={m.avatarUrl} initials={m.initials} className="cw-av cw-av-28" />
         <div className="cw-stack">
           <div className="cw-meta">
             <span className="cw-who">{m.author}</span>
@@ -736,7 +743,7 @@ function ThreadPane({ root, replies, draft, onDraftChange, onSend, onClose }) {
         </div>
         {replies.map(t => (
           <div className="cw-treply" key={t.id}>
-            <div className="cw-av cw-av-24">{t.initials}</div>
+            <Avatar url={t.avatarUrl} initials={t.initials} className="cw-av cw-av-24" />
             <div style={{ minWidth: 0 }}>
               <div className="cw-top"><span className="cw-who">{t.author}</span><span className="cw-t">{t.time}</span></div>
               <div className="cw-x">{t.text}</div>
@@ -803,7 +810,7 @@ function GroupModal({ people, picked, groupName, onGroupName, onTogglePick, onCl
                 const key = p.role + p.id;
                 return (
                   <button key={key} onClick={() => onTogglePick(key)}>
-                    <div className="cw-av cw-av-26">{p.initials}</div>
+                    <Avatar url={p.avatarUrl} initials={p.initials} className="cw-av cw-av-26" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="cw-n">{p.name}</div>
                       <div className="cw-r">{p.roleLabel}</div>
@@ -829,7 +836,7 @@ function CallModal({ conv, kind, sec, onEnd }) {
   return (
     <div className="cw-overlay" style={{ zIndex: 12, background: 'rgba(0,0,0,.62)' }}>
       <div className="cw-modal cw-call" onClick={e => e.stopPropagation()}>
-        <div className="cw-big">{conv.initials}</div>
+        <Avatar url={conv.avatarUrl} initials={conv.initials} className="cw-big" />
         <div className="cw-nm">{conv.name}</div>
         <div className="cw-st">
           <i className={'ph ph-' + (kind === 'video' ? 'video-camera' : 'phone')} />

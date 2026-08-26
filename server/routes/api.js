@@ -1,11 +1,36 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const db = require('../db');
+
+const avatarUploadDir = path.join(__dirname, '..', 'uploads', 'avatars');
+fs.mkdirSync(avatarUploadDir, { recursive: true });
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, avatarUploadDir),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname))
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
+});
 
 // Helper format VND
 function formatVND(val) {
   const num = Number(val) || 0;
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+}
+function formatCompactVND(val) {
+  const num = Number(val) || 0;
+  if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(1).replace('.', ',') + ' tỷ';
+  if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(1).replace('.', ',') + ' tr';
+  return formatVND(num);
+}
+function pctChange(cur, prev) {
+  if (!prev) return cur > 0 ? 100 : 0;
+  return Math.round(((cur - prev) / prev) * 1000) / 10;
 }
 
 // GET /api/overview
@@ -15,6 +40,7 @@ router.get('/overview', async (req, res) => {
     const [[{ activeEmployees }]] = await db.query("SELECT COUNT(*) as activeEmployees FROM nhan_vien WHERE trang_thai = 'Đang làm việc'");
     const [[{ totalProjects }]] = await db.query('SELECT COUNT(*) as totalProjects FROM du_an');
     const [[{ totalRevenue }]] = await db.query('SELECT COALESCE(SUM(tien_da_dong), 0) as totalRevenue FROM hoc_vien');
+    const [[{ totalCustomers }]] = await db.query('SELECT COUNT(*) as totalCustomers FROM khach_hang');
 
     const [recentStudents] = await db.query(`
       SELECT 
@@ -41,6 +67,7 @@ router.get('/overview', async (req, res) => {
         totalStudents,
         activeEmployees,
         partnerSchools: totalProjects,
+        totalCustomers,
         revenue: formatVND(totalRevenue)
       },
       recentStudents: recentStudents.map(s => ({
@@ -209,6 +236,14 @@ router.post('/students', async (req, res) => {
     const ma_hoc_vien = 'HV' + String(result.insertId).padStart(3, '0');
     await db.query('UPDATE hoc_vien SET ma_hoc_vien = ? WHERE id = ?', [ma_hoc_vien, result.insertId]);
 
+    const initialPaid = Number(tienDaDong) || 0;
+    if (initialPaid > 0) {
+      await db.query(
+        'INSERT INTO thanh_toan (hoc_vien_id, so_tien, ghi_chu) VALUES (?, ?, ?)',
+        [result.insertId, initialPaid, 'Khởi tạo hồ sơ học viên']
+      );
+    }
+
     res.status(201).json({
       success: true,
       message: `Đã thêm thành công học viên ${name} (${ma_hoc_vien}) vào CSDL!`,
@@ -237,9 +272,12 @@ router.put('/students/:id', async (req, res) => {
       tongTien
     } = req.body;
 
+    const [beforeRows] = await db.query('SELECT id, tien_da_dong FROM hoc_vien WHERE ma_hoc_vien = ? OR id = ?', [targetId, targetId]);
+    const before = beforeRows[0];
+
     const [result] = await db.query(`
-      UPDATE hoc_vien 
-      SET 
+      UPDATE hoc_vien
+      SET
         ho_ten = ?,
         email = ?,
         so_dien_thoai = ?,
@@ -263,6 +301,16 @@ router.put('/students/:id', async (req, res) => {
       targetId,
       targetId
     ]);
+
+    if (before) {
+      const delta = (Number(tienDaDong) || 0) - (Number(before.tien_da_dong) || 0);
+      if (delta !== 0) {
+        await db.query(
+          'INSERT INTO thanh_toan (hoc_vien_id, so_tien, ghi_chu) VALUES (?, ?, ?)',
+          [before.id, delta, delta > 0 ? 'Cập nhật thanh toán' : 'Điều chỉnh giảm']
+        );
+      }
+    }
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy học viên để cập nhật' });
@@ -509,6 +557,106 @@ router.delete('/employees/:id', async (req, res) => {
   }
 });
 
+// GET /api/revenue — monthly/yearly revenue report built from `thanh_toan`
+// (a running log of each payment change made on a student's hồ sơ).
+router.get('/revenue', async (req, res) => {
+  try {
+    async function sumWhere(whereSql, params) {
+      const [[row]] = await db.query(`SELECT COALESCE(SUM(so_tien),0) as total FROM thanh_toan WHERE ${whereSql}`, params);
+      return Number(row.total) || 0;
+    }
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const curQuarter = Math.floor((curMonth - 1) / 3) + 1;
+
+    const monthly = await sumWhere('YEAR(ngay_thanh_toan) = ? AND MONTH(ngay_thanh_toan) = ?', [curYear, curMonth]);
+    const prevMonthDate = new Date(curYear, curMonth - 2, 1);
+    const prevMonthTotal = await sumWhere('YEAR(ngay_thanh_toan) = ? AND MONTH(ngay_thanh_toan) = ?', [prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1]);
+
+    const qStartMonth = (curQuarter - 1) * 3 + 1;
+    const qEndMonth = qStartMonth + 2;
+    const quarterly = await sumWhere('YEAR(ngay_thanh_toan) = ? AND MONTH(ngay_thanh_toan) BETWEEN ? AND ?', [curYear, qStartMonth, qEndMonth]);
+    let pqStart = qStartMonth - 3, pqEnd = qEndMonth - 3, pqYear = curYear;
+    if (pqStart < 1) { pqStart += 12; pqEnd += 12; pqYear -= 1; }
+    const prevQuarterTotal = await sumWhere('YEAR(ngay_thanh_toan) = ? AND MONTH(ngay_thanh_toan) BETWEEN ? AND ?', [pqYear, pqStart, pqEnd]);
+
+    const yearly = await sumWhere('YEAR(ngay_thanh_toan) = ?', [curYear]);
+    const prevYearTotal = await sumWhere('YEAR(ngay_thanh_toan) = ?', [curYear - 1]);
+
+    const [[{ outstanding }]] = await db.query('SELECT COALESCE(SUM(tong_tien - tien_da_dong),0) as outstanding FROM hoc_vien');
+
+    const monthlyChart = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(curYear, curMonth - 1 - i, 1);
+      const y = d.getFullYear(), m = d.getMonth() + 1;
+      const total = await sumWhere('YEAR(ngay_thanh_toan) = ? AND MONTH(ngay_thanh_toan) = ?', [y, m]);
+      monthlyChart.push({ month: m, total, isCurrent: i === 0 });
+    }
+    const maxChartVal = Math.max(1, ...monthlyChart.map(c => c.total));
+
+    const [countryRows] = await db.query(`
+      SELECT COALESCE(hv.quoc_gia_den, 'Khác') as country, COALESCE(SUM(tt.so_tien),0) as total
+      FROM thanh_toan tt
+      JOIN hoc_vien hv ON hv.id = tt.hoc_vien_id
+      GROUP BY COALESCE(hv.quoc_gia_den, 'Khác')
+      ORDER BY total DESC
+    `);
+    const maxCountry = Math.max(1, ...countryRows.map(r => Number(r.total)));
+    const countryColors = ['var(--teal)', 'var(--gold)', 'var(--coral)', 'var(--green)', '#3B6FD1'];
+
+    const [txRows] = await db.query(`
+      SELECT tt.so_tien, tt.ngay_thanh_toan, tt.ghi_chu, hv.ho_ten
+      FROM thanh_toan tt
+      JOIN hoc_vien hv ON hv.id = tt.hoc_vien_id
+      ORDER BY tt.ngay_thanh_toan DESC, tt.id DESC
+      LIMIT 10
+    `);
+
+    res.json({
+      stats: {
+        monthly: formatVND(monthly),
+        monthlyTrendPct: pctChange(monthly, prevMonthTotal),
+        quarterly: formatVND(quarterly),
+        quarterlyTrendPct: pctChange(quarterly, prevQuarterTotal),
+        yearly: formatVND(yearly),
+        yearlyTrendPct: pctChange(yearly, prevYearTotal),
+        outstanding: formatVND(outstanding)
+      },
+      period: { month: curMonth, quarter: curQuarter, year: curYear },
+      monthlyChart: monthlyChart.map(c => ({
+        month: `T${c.month}`,
+        val: formatCompactVND(c.total),
+        height: Math.round((c.total / maxChartVal) * 100),
+        target: c.isCurrent
+      })),
+      sources: countryRows.map((r, idx) => ({
+        name: r.country,
+        amount: formatVND(r.total),
+        width: Math.round((Number(r.total) / maxCountry) * 100),
+        color: countryColors[idx % countryColors.length]
+      })),
+      recentTransactions: txRows.map(t => {
+        const amt = Number(t.so_tien);
+        const name = t.ho_ten || 'Học viên';
+        return {
+          student: name,
+          avatar: name.split(' ').filter(Boolean).slice(-2).map(n => n[0]).join('').toUpperCase() || 'HV',
+          desc: t.ghi_chu || (amt >= 0 ? 'Học viên đóng học phí' : 'Điều chỉnh giảm'),
+          amount: (amt >= 0 ? '+' : '') + formatVND(amt),
+          date: new Date(t.ngay_thanh_toan).toLocaleDateString('vi-VN'),
+          status: amt >= 0 ? 'paid' : 'adjust',
+          statusText: amt >= 0 ? 'Đã thu' : 'Điều chỉnh'
+        };
+      })
+    });
+  } catch (err) {
+    console.error('Lỗi API /api/revenue:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
 // GET /api/schools
 router.get('/schools', async (req, res) => {
   try {
@@ -544,28 +692,188 @@ router.get('/schools', async (req, res) => {
 });
 
 // GET /api/leads
-router.get('/leads', async (req, res) => {
+// GET /api/customers (Quản lý khách hàng)
+router.get('/customers', async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT 
-        id,
-        ma_kh as maKH,
-        ho_ten as name,
-        so_dien_thoai as phone,
-        nhan_vien_id as nhanVienId,
-        IFNULL(DATE_FORMAT(ngay_dang_ky, '%d/%m/%Y'), DATE_FORMAT(created_at, '%d/%m/%Y')) as ngayDangKy,
-        quoc_gia_quan_tam as country,
-        trang_thai as statusText,
-        ghi_chu as note,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
-      FROM khach_hang
-      ORDER BY id DESC
+      SELECT
+        kh.id,
+        kh.ma_kh as maKH,
+        kh.ho_ten as name,
+        kh.so_dien_thoai as phone,
+        kh.nhan_vien_id as nhanVienId,
+        nv.ho_ten as staffName,
+        kh.ngay_dang_ky as ngayDangKyRaw,
+        IFNULL(DATE_FORMAT(kh.ngay_dang_ky, '%d/%m/%Y'), DATE_FORMAT(kh.created_at, '%d/%m/%Y')) as ngayDangKy,
+        kh.quoc_gia_quan_tam as country,
+        kh.trang_thai as statusText,
+        kh.ghi_chu as note,
+        kh.created_at as createdAtRaw,
+        IFNULL(DATE_FORMAT(kh.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM khach_hang kh
+      LEFT JOIN nhan_vien nv ON nv.id = kh.nhan_vien_id
+      ORDER BY kh.id DESC
     `);
 
-    res.json({ leads: rows });
+    const customers = rows.map(r => ({
+      id: r.maKH,
+      dbId: r.id,
+      maKH: r.maKH,
+      name: r.name,
+      phone: r.phone,
+      nhanVienId: r.nhanVienId,
+      staffName: r.staffName || 'Chưa phân công',
+      ngayDangKyRaw: r.ngayDangKyRaw ? new Date(r.ngayDangKyRaw).toISOString().slice(0, 10) : '',
+      ngayDangKy: r.ngayDangKy,
+      country: r.country || 'Chưa xác định',
+      statusText: r.statusText || 'Mới tiếp nhận',
+      note: r.note,
+      createdAt: r.createdAt,
+      createdAtRaw: r.createdAtRaw
+    }));
+
+    res.json({ customers });
   } catch (err) {
-    console.error('Lỗi API /api/leads:', err);
+    console.error('Lỗi API /api/customers:', err);
     res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/customers (Thêm khách hàng)
+router.post('/customers', async (req, res) => {
+  try {
+    const { name, phone, nhanVienId, ngayDangKy, country, statusText, note } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Tên khách hàng là bắt buộc' });
+    }
+
+    const [result] = await db.query(`
+      INSERT INTO khach_hang (ma_kh, ho_ten, so_dien_thoai, nhan_vien_id, ngay_dang_ky, quoc_gia_quan_tam, trang_thai, ghi_chu, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    `, [
+      'TEMP',
+      name,
+      phone || null,
+      nhanVienId || null,
+      ngayDangKy || null,
+      country || null,
+      statusText || 'Mới tiếp nhận',
+      note || null
+    ]);
+
+    const ma_kh = 'KH' + String(result.insertId).padStart(3, '0');
+    await db.query('UPDATE khach_hang SET ma_kh = ? WHERE id = ?', [ma_kh, result.insertId]);
+
+    res.status(201).json({
+      success: true,
+      message: `Đã thêm khách hàng ${name} (${ma_kh}) vào CSDL!`,
+      insertedId: result.insertId,
+      ma_kh
+    });
+  } catch (err) {
+    console.error('Lỗi thêm mới khách hàng:', err);
+    res.status(500).json({ error: 'Không thể thêm khách hàng vào CSDL: ' + err.message });
+  }
+});
+
+// PUT /api/customers/:id (Sửa khách hàng)
+router.put('/customers/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const { name, phone, nhanVienId, ngayDangKy, country, statusText, note } = req.body;
+
+    const [result] = await db.query(`
+      UPDATE khach_hang
+      SET
+        ho_ten = ?,
+        so_dien_thoai = ?,
+        nhan_vien_id = ?,
+        ngay_dang_ky = ?,
+        quoc_gia_quan_tam = ?,
+        trang_thai = ?,
+        ghi_chu = ?
+      WHERE ma_kh = ? OR id = ?
+    `, [
+      name,
+      phone || null,
+      nhanVienId || null,
+      ngayDangKy || null,
+      country || null,
+      statusText || 'Mới tiếp nhận',
+      note || null,
+      targetId,
+      targetId
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy khách hàng để cập nhật' });
+    }
+
+    res.json({ success: true, message: `Đã cập nhật thành công khách hàng ${name}!` });
+  } catch (err) {
+    console.error('Lỗi sửa khách hàng:', err);
+    res.status(500).json({ error: 'Không thể cập nhật khách hàng: ' + err.message });
+  }
+});
+
+// DELETE /api/customers/:id (Xóa khách hàng)
+router.delete('/customers/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const [result] = await db.query('DELETE FROM khach_hang WHERE ma_kh = ? OR id = ?', [targetId, targetId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy khách hàng để xóa' });
+    }
+
+    res.json({ success: true, message: 'Đã xóa khách hàng khỏi CSDL' });
+  } catch (err) {
+    console.error('Lỗi xóa khách hàng:', err);
+    res.status(500).json({ error: 'Không thể xóa khách hàng: ' + err.message });
+  }
+});
+
+// POST /api/change-password — works for both admin and staff (this router is
+// mounted behind requireAuth('admin','staff'), so req.user.role is always one of the two).
+router.post('/change-password', async (req, res) => {
+  try {
+    const { role, id } = req.user;
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Thiếu mật khẩu hiện tại hoặc mật khẩu mới' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+    }
+    const table = role === 'admin' ? 'admin' : 'nhan_vien';
+    const [rows] = await db.query(`SELECT password_hash FROM ${table} WHERE id = ?`, [id]);
+    const account = rows[0];
+    if (!account) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+
+    const match = await bcrypt.compare(currentPassword, account.password_hash || '');
+    if (!match) return res.status(401).json({ error: 'Mật khẩu hiện tại không đúng' });
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await db.query(`UPDATE ${table} SET password_hash = ? WHERE id = ?`, [newHash, id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Lỗi đổi mật khẩu:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// POST /api/upload-avatar — works for both admin and staff, same reasoning as /change-password.
+router.post('/upload-avatar', avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    const { role, id } = req.user;
+    if (!req.file) return res.status(400).json({ error: 'Vui lòng chọn một ảnh' });
+    const table = role === 'admin' ? 'admin' : 'nhan_vien';
+    const avatarUrl = '/uploads/avatars/' + req.file.filename;
+    await db.query(`UPDATE ${table} SET avatar_url = ? WHERE id = ?`, [avatarUrl, id]);
+    res.json({ success: true, avatarUrl });
+  } catch (err) {
+    console.error('Lỗi tải ảnh đại diện:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
   }
 });
 

@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
+function TrendBadge({ pct }) {
+  if (pct > 0) return <div className="stat-trend trend-up">↑ {pct}%</div>;
+  if (pct < 0) return <div className="stat-trend" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>↓ {Math.abs(pct)}%</div>;
+  return <div className="stat-trend trend-flat">0%</div>;
+}
+
 export default function RevenuePage() {
   const [data, setData] = useState(null);
 
@@ -12,21 +18,20 @@ export default function RevenuePage() {
       .catch(err => console.error(err));
   }, []);
 
+  const period = data?.period;
+  const periodLabel = period ? `Tháng ${String(period.month).padStart(2, '0')}/${period.year}` : '';
+
   return (
     <section className="page active">
       <Topbar
-        eyebrow="Tháng 08/2026"
+        eyebrow={periodLabel}
         title="Báo cáo doanh thu"
-        subtitle="Tổng quan doanh thu, học phí đã thu và cơ cấu theo nguồn."
+        subtitle="Tổng hợp từ số tiền học viên đóng, cập nhật mỗi khi hồ sơ học viên thay đổi."
         rightAction={
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              Tháng 08/2026
-            </button>
-            <button className="btn-primary">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-              Xuất báo cáo
+              {periodLabel}
             </button>
           </div>
         }
@@ -38,9 +43,9 @@ export default function RevenuePage() {
             <div className="stat-icon" style={{ background: 'var(--green-soft)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
-            <div className="stat-trend trend-up">↑ 5.4%</div>
+            {data && <TrendBadge pct={data.stats.monthlyTrendPct} />}
           </div>
-          <div className="stat-value">{data?.stats?.monthly || '1.85 tỷ'}</div>
+          <div className="stat-value">{data?.stats?.monthly || '—'}</div>
           <div className="stat-label">Doanh thu tháng này (₫)</div>
         </div>
 
@@ -49,10 +54,10 @@ export default function RevenuePage() {
             <div className="stat-icon" style={{ background: 'var(--teal-soft)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/></svg>
             </div>
-            <div className="stat-trend trend-up">↑ 11%</div>
+            {data && <TrendBadge pct={data.stats.quarterlyTrendPct} />}
           </div>
-          <div className="stat-value">{data?.stats?.quarterly || '5.2 tỷ'}</div>
-          <div className="stat-label">Doanh thu quý 3/2026 (₫)</div>
+          <div className="stat-value">{data?.stats?.quarterly || '—'}</div>
+          <div className="stat-label">Doanh thu quý {period ? `${period.quarter}/${period.year}` : ''} (₫)</div>
         </div>
 
         <div className="stat-card">
@@ -60,10 +65,10 @@ export default function RevenuePage() {
             <div className="stat-icon" style={{ background: '#E7EEFC' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B6FD1" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             </div>
-            <div className="stat-trend trend-flat">82%</div>
+            {data && <TrendBadge pct={data.stats.yearlyTrendPct} />}
           </div>
-          <div className="stat-value">{data?.stats?.collected || '1.52 tỷ'}</div>
-          <div className="stat-label">Đã thu trong tháng (₫)</div>
+          <div className="stat-value">{data?.stats?.yearly || '—'}</div>
+          <div className="stat-label">Doanh thu năm {period ? period.year : ''} (₫)</div>
         </div>
 
         <div className="stat-card">
@@ -71,9 +76,8 @@ export default function RevenuePage() {
             <div className="stat-icon" style={{ background: 'var(--coral-soft)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="2"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
             </div>
-            <div className="stat-trend" style={{ background: 'var(--coral-soft)', color: 'var(--coral)' }}>18%</div>
           </div>
-          <div className="stat-value">{data?.stats?.pending || '330 tr'}</div>
+          <div className="stat-value">{data?.stats?.outstanding || '—'}</div>
           <div className="stat-label">Còn phải thu (₫)</div>
         </div>
       </div>
@@ -101,7 +105,7 @@ export default function RevenuePage() {
         <div className="panel">
           <div className="panel-head"><h3>Doanh thu theo quốc gia</h3></div>
           <div className="source-list">
-            {(data?.sources || []).map((src, idx) => (
+            {(data?.sources || []).length ? data.sources.map((src, idx) => (
               <div className="source-row" key={idx}>
                 <span className="source-name">{src.name}</span>
                 <div className="source-bar-track">
@@ -109,13 +113,13 @@ export default function RevenuePage() {
                 </div>
                 <span className="source-amount">{src.amount}</span>
               </div>
-            ))}
+            )) : <div style={{ padding: '16px 0', color: 'var(--text-faint)', fontSize: 13 }}>Chưa có giao dịch nào.</div>}
           </div>
         </div>
       </div>
 
       <div className="panel" style={{ marginTop: '16px' }}>
-        <div className="panel-head"><h3>Giao dịch gần đây</h3><span className="link">Xem tất cả →</span></div>
+        <div className="panel-head"><h3>Giao dịch gần đây</h3></div>
         <table className="table">
           <thead>
             <tr><th>Học viên</th><th>Nội dung</th><th>Số tiền</th><th>Ngày</th><th>Trạng thái</th></tr>
@@ -135,6 +139,9 @@ export default function RevenuePage() {
                 <td><span className={`stamp ${tx.status === 'paid' ? 'stamp-visa' : 'stamp-processing'}`}>{tx.statusText}</span></td>
               </tr>
             ))}
+            {data && !data.recentTransactions.length && (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-faint)', padding: '18px 0' }}>Chưa có giao dịch nào.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

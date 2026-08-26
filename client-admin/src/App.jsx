@@ -5,6 +5,7 @@ import StudentsPage from './pages/StudentsPage';
 import StudentDetailPage from './pages/StudentDetailPage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
+import CustomersPage from './pages/CustomersPage';
 import SchoolsPage from './pages/SchoolsPage';
 import ConsultPage from './pages/ConsultPage';
 import RevenuePage from './pages/RevenuePage';
@@ -42,13 +43,21 @@ export default function App() {
     setIsLoggedIn(false);
   };
 
+  const handleAvatarChange = (avatarUrl) => {
+    setAdminUser(prev => {
+      const next = { ...prev, avatarUrl };
+      localStorage.setItem('aladdin_admin', JSON.stringify(next));
+      return next;
+    });
+  };
+
   if (!isLoggedIn) {
     return <AdminLoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
     <div className="app">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} profile={adminUser} onLogout={handleLogout} />
+      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} profile={adminUser} onLogout={handleLogout} onAvatarChange={handleAvatarChange} />
       <main className="main">
         {currentPage === 'overview' && (
           <OverviewPage setCurrentPage={setCurrentPage} setSelectedStudentId={setSelectedStudentId} />
@@ -65,6 +74,7 @@ export default function App() {
         {currentPage === 'employee-detail' && (
           <EmployeeDetailPage empId={selectedEmpId} setCurrentPage={setCurrentPage} setSelectedStudentId={setSelectedStudentId} />
         )}
+        {currentPage === 'customers' && <CustomersPage />}
         {currentPage === 'schools' && <SchoolsPage />}
         {currentPage === 'consult' && <ConsultPage />}
         {currentPage === 'revenue' && <RevenuePage />}

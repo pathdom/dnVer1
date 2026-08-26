@@ -35,6 +35,7 @@ router.post('/login', async (req, res) => {
         role: s.chuc_danh || s.bo_phan || 'Chuyên viên tư vấn',
         email: s.email,
         avatar: s.ho_ten ? s.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'NV',
+        avatarUrl: s.avatar_url || null,
         assignedStudentsCount: 0
       }
     });

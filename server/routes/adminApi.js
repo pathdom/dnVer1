@@ -33,7 +33,8 @@ router.post('/login', async (req, res) => {
         name: a.ho_ten,
         role: a.vai_tro,
         email: a.email,
-        avatar: a.ho_ten ? a.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'AD'
+        avatar: a.ho_ten ? a.ho_ten.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'AD',
+        avatarUrl: a.avatar_url || null
       }
     });
   } catch (err) {
