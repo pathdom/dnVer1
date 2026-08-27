@@ -30,7 +30,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
                 name: 'Lê Thu Hà',
                 email: 'ha.le@aladdin.vn',
                 phone: '0911223344',
-                department: 'Tư vấn tuyển sinh',
+                department: 'Kinh doanh',
                 role: 'Chuyên viên tư vấn',
                 workType: 'Chính thức',
                 statusText: 'Đang làm việc',
@@ -119,7 +119,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>🏢 Vị trí công tác & Phòng ban</h3>
             </div>
             <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13.5px' }}>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Phòng ban công tác</div><div style={{ fontWeight: '700', color: 'var(--teal)' }}>{emp.department || 'Tư vấn tuyển sinh'}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Phòng ban công tác</div><div style={{ fontWeight: '700', color: 'var(--teal)' }}>{emp.department || 'Kinh doanh'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Chức danh nhiệm vụ</div><div style={{ fontWeight: '600' }}>{emp.role || 'Chuyên viên tư vấn'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Hình thức hợp đồng</div><div style={{ fontWeight: '600' }}>{emp.workType || 'Chính thức'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Trạng thái làm việc</div><div style={{ fontWeight: '600' }}>{emp.statusText || 'Đang làm việc'}</div></div>

@@ -3,7 +3,7 @@ import { apiFetch } from '../lib/apiFetch';
 import ProfileMenu from './ProfileMenu';
 
 export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout, onAvatarChange }) {
-  const [stats, setStats] = useState({ totalStudents: '...', activeEmployees: '...', partnerSchools: '...', totalCustomers: '...' });
+  const [stats, setStats] = useState({ totalStudents: '...', activeEmployees: '...', partnerSchools: '...', totalCustomers: '...', totalCollaborators: '...', totalCompetencyExams: '...', weekAppointments: '' });
   const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('aladdin_logo') || null);
   const [chatUnread, setChatUnread] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
@@ -104,6 +104,16 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
         </button>
 
         <button
+          className={`nav-item ${currentPage === 'collaborators' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('collaborators')}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+          </svg>
+          Cộng tác viên<span className="count">{stats.totalCollaborators}</span>
+        </button>
+
+        <button
           className={`nav-item ${currentPage === 'schools' ? 'active' : ''}`}
           onClick={() => setCurrentPage('schools')}
         >
@@ -111,6 +121,16 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
             <path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><path d="M2 10v6"/>
           </svg>
           Trường đối tác<span className="count">{stats.partnerSchools}</span>
+        </button>
+
+        <button
+          className={`nav-item ${currentPage === 'competency' || currentPage === 'competency-builder' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('competency')}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Test năng lực nhân viên<span className="count">{stats.totalCompetencyExams}</span>
         </button>
 
         <button
@@ -130,7 +150,7 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
           </svg>
-          Lịch tư vấn<span className="count">5</span>
+          Lịch tư vấn{stats.weekAppointments > 0 && <span className="count">{stats.weekAppointments}</span>}
         </button>
       </nav>
 

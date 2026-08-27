@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
+const { DEPARTMENTS, computeXepLoai } = require('../lib/competency');
 
 const avatarUploadDir = path.join(__dirname, '..', 'uploads', 'avatars');
 fs.mkdirSync(avatarUploadDir, { recursive: true });
@@ -32,6 +33,10 @@ function pctChange(cur, prev) {
   if (!prev) return cur > 0 ? 100 : 0;
   return Math.round(((cur - prev) / prev) * 1000) / 10;
 }
+// datetime-local inputs send "YYYY-MM-DDTHH:mm"; MySQL DATETIME wants a space separator.
+function normalizeDatetime(val) {
+  return (val || '').replace('T', ' ');
+}
 
 // GET /api/overview
 router.get('/overview', async (req, res) => {
@@ -39,11 +44,14 @@ router.get('/overview', async (req, res) => {
     const [[{ totalStudents }]] = await db.query('SELECT COUNT(*) as totalStudents FROM hoc_vien');
     const [[{ activeEmployees }]] = await db.query("SELECT COUNT(*) as activeEmployees FROM nhan_vien WHERE trang_thai = 'Đang làm việc'");
     const [[{ totalProjects }]] = await db.query('SELECT COUNT(*) as totalProjects FROM du_an');
+    const [[{ totalCollaborators }]] = await db.query('SELECT COUNT(*) as totalCollaborators FROM cong_tac_vien');
+    const [[{ totalCompetencyExams }]] = await db.query('SELECT COUNT(*) as totalCompetencyExams FROM de_thi');
     const [[{ totalRevenue }]] = await db.query('SELECT COALESCE(SUM(tien_da_dong), 0) as totalRevenue FROM hoc_vien');
     const [[{ totalCustomers }]] = await db.query('SELECT COUNT(*) as totalCustomers FROM khach_hang');
+    const [[{ unassignedCustomers }]] = await db.query('SELECT COUNT(*) as unassignedCustomers FROM khach_hang WHERE nhan_vien_id IS NULL');
 
     const [recentStudents] = await db.query(`
-      SELECT 
+      SELECT
         id,
         ma_hoc_vien as maHV,
         ho_ten as name,
@@ -62,12 +70,89 @@ router.get('/overview', async (req, res) => {
       LIMIT 6
     `);
 
+    // Phân bố học viên theo quốc gia (cho biểu đồ tròn)
+    const [countryRows] = await db.query(`
+      SELECT COALESCE(quoc_gia_den, 'Chưa xác định') as country, COUNT(*) as count
+      FROM hoc_vien
+      GROUP BY COALESCE(quoc_gia_den, 'Chưa xác định')
+      ORDER BY count DESC
+    `);
+    const destinations = countryRows.map(r => ({
+      country: r.country,
+      count: r.count,
+      percent: totalStudents ? Math.round((r.count / totalStudents) * 1000) / 10 : 0
+    }));
+
+    // Thống kê theo trạng thái hồ sơ (cho dải tổng kết dưới danh sách học viên)
+    const [stageRows] = await db.query(`
+      SELECT COALESCE(trang_thai_ho_so, 'Chưa cập nhật') as stage, COUNT(*) as count
+      FROM hoc_vien
+      GROUP BY COALESCE(trang_thai_ho_so, 'Chưa cập nhật')
+    `);
+
+    // Lịch tư vấn tuần này (Thứ Hai → Chủ Nhật của tuần hiện tại)
+    const [[weekRange]] = await db.query(`
+      SELECT
+        DATE_FORMAT(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), '%Y-%m-%d') as weekStart,
+        DATE_FORMAT(DATE_ADD(NOW(), INTERVAL (6 - WEEKDAY(NOW())) DAY), '%Y-%m-%d') as weekEnd,
+        DATE_FORMAT(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), '%d/%m') as weekStartLabel,
+        DATE_FORMAT(DATE_ADD(NOW(), INTERVAL (6 - WEEKDAY(NOW())) DAY), '%d/%m') as weekEndLabel
+    `);
+    const [weekApptRows] = await db.query(
+      APPOINTMENT_SELECT + ' WHERE DATE(lv.thoi_gian) BETWEEN ? AND ? ORDER BY lv.thoi_gian ASC',
+      [weekRange.weekStart, weekRange.weekEnd]
+    );
+    const weekAppointments = weekApptRows.map(mapAppointmentRow);
+
+    // Danh sách "Cần xử lý" — chỉ những tín hiệu tính được từ dữ liệu thật, không bịa
+    const [outstandingStudents] = await db.query(`
+      SELECT ho_ten as name, (tong_tien - tien_da_dong) as remaining
+      FROM hoc_vien
+      WHERE tien_da_dong < tong_tien
+      ORDER BY remaining DESC
+      LIMIT 3
+    `);
+    const [expiringProjects] = await db.query(`
+      SELECT ten_du_an as name, ngay_ket_thuc as endDate
+      FROM du_an
+      WHERE ngay_ket_thuc IS NOT NULL AND ngay_ket_thuc <= DATE_ADD(NOW(), INTERVAL 60 DAY)
+      ORDER BY ngay_ket_thuc ASC
+      LIMIT 3
+    `);
+
+    const tasks = [];
+    if (unassignedCustomers > 0) {
+      tasks.push({
+        title: `${unassignedCustomers} khách hàng chưa được phân công`,
+        subtitle: 'Xem ở mục Quản lý khách hàng',
+        hot: true
+      });
+    }
+    outstandingStudents.forEach(s => {
+      tasks.push({
+        title: `Học phí còn thiếu · ${s.name}`,
+        subtitle: `Còn lại ${formatVND(s.remaining)}`,
+        hot: false
+      });
+    });
+    expiringProjects.forEach(p => {
+      tasks.push({
+        title: `Dự án sắp kết thúc · ${p.name}`,
+        subtitle: `Hạn ${new Date(p.endDate).toLocaleDateString('vi-VN')}`,
+        hot: new Date(p.endDate) <= new Date()
+      });
+    });
+
     res.json({
       stats: {
         totalStudents,
         activeEmployees,
         partnerSchools: totalProjects,
         totalCustomers,
+        totalCollaborators,
+        totalCompetencyExams,
+        unassignedCustomers,
+        weekAppointments: weekAppointments.length,
         revenue: formatVND(totalRevenue)
       },
       recentStudents: recentStudents.map(s => ({
@@ -76,7 +161,16 @@ router.get('/overview', async (req, res) => {
         tienDaDongFormatted: formatVND(s.tienDaDong),
         tongTienFormatted: formatVND(s.tongTien),
         avatar: s.name ? s.name.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'HV'
-      }))
+      })),
+      destinations,
+      stages: stageRows,
+      tasks,
+      week: {
+        start: weekRange.weekStart,
+        end: weekRange.weekEnd,
+        label: `${weekRange.weekStartLabel} – ${weekRange.weekEndLabel}`
+      },
+      weekAppointments
     });
   } catch (err) {
     console.error('Lỗi API /api/overview:', err);
@@ -272,8 +366,24 @@ router.put('/students/:id', async (req, res) => {
       tongTien
     } = req.body;
 
-    const [beforeRows] = await db.query('SELECT id, tien_da_dong FROM hoc_vien WHERE ma_hoc_vien = ? OR id = ?', [targetId, targetId]);
+    const isNumericId = /^\d+$/.test(targetId);
+    const [beforeRows] = await db.query(
+      `SELECT id, tien_da_dong FROM hoc_vien WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
     const before = beforeRows[0];
+
+    const updateParams = [
+      name,
+      email || null,
+      phone || null,
+      hometown || null,
+      country || 'Nhật Bản',
+      statusText || 'Đang học tiếng',
+      ngayNhapHoc || null,
+      Number(tienDaDong) || 0,
+      Number(tongTien) || 0
+    ];
 
     const [result] = await db.query(`
       UPDATE hoc_vien
@@ -287,20 +397,8 @@ router.put('/students/:id', async (req, res) => {
         ngay_nhap_hoc = ?,
         tien_da_dong = ?,
         tong_tien = ?
-      WHERE ma_hoc_vien = ? OR id = ?
-    `, [
-      name,
-      email || null,
-      phone || null,
-      hometown || null,
-      country || 'Nhật Bản',
-      statusText || 'Đang học tiếng',
-      ngayNhapHoc || null,
-      Number(tienDaDong) || 0,
-      Number(tongTien) || 0,
-      targetId,
-      targetId
-    ]);
+      WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}
+    `, isNumericId ? [...updateParams, targetId, targetId] : [...updateParams, targetId]);
 
     if (before) {
       const delta = (Number(tienDaDong) || 0) - (Number(before.tien_da_dong) || 0);
@@ -327,7 +425,11 @@ router.put('/students/:id', async (req, res) => {
 router.delete('/students/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
-    const [result] = await db.query('DELETE FROM hoc_vien WHERE ma_hoc_vien = ? OR id = ?', [targetId, targetId]);
+    const isNumericId = /^\d+$/.test(targetId);
+    const [result] = await db.query(
+      `DELETE FROM hoc_vien WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy học viên để xóa' });
@@ -381,8 +483,9 @@ router.get('/employees', async (req, res) => {
 router.get('/employees/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
     const [rows] = await db.query(`
-      SELECT 
+      SELECT
         id,
         ma_nhan_vien as maNV,
         ho_ten as name,
@@ -396,8 +499,8 @@ router.get('/employees/:id', async (req, res) => {
         trang_thai as statusText,
         IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
       FROM nhan_vien
-      WHERE ma_nhan_vien = ? OR id = ?
-    `, [targetId, targetId]);
+      WHERE ma_nhan_vien = ? ${isNumericId ? 'OR id = ?' : ''}
+    `, isNumericId ? [targetId, targetId] : [targetId]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy nhân viên' });
@@ -467,7 +570,7 @@ router.post('/employees', async (req, res) => {
       name,
       email || null,
       phone || null,
-      department || 'Tư vấn tuyển sinh',
+      department || 'Kinh doanh',
       role || 'Chuyên viên tư vấn',
       workType || 'Chính thức',
       statusText || 'Đang làm việc',
@@ -493,6 +596,7 @@ router.post('/employees', async (req, res) => {
 router.put('/employees/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
     const {
       name,
       email,
@@ -504,9 +608,20 @@ router.put('/employees/:id', async (req, res) => {
       startDate
     } = req.body;
 
+    const baseParams = [
+      name,
+      email || null,
+      phone || null,
+      department || 'Kinh doanh',
+      role || 'Chuyên viên tư vấn',
+      workType || 'Chính thức',
+      statusText || 'Đang làm việc',
+      startDate || null
+    ];
+
     const [result] = await db.query(`
       UPDATE nhan_vien
-      SET 
+      SET
         ho_ten = ?,
         email = ?,
         so_dien_thoai = ?,
@@ -515,19 +630,8 @@ router.put('/employees/:id', async (req, res) => {
         hinh_thuc = ?,
         trang_thai = ?,
         ngay_vao_lam = ?
-      WHERE ma_nhan_vien = ? OR id = ?
-    `, [
-      name,
-      email || null,
-      phone || null,
-      department || 'Tư vấn tuyển sinh',
-      role || 'Chuyên viên tư vấn',
-      workType || 'Chính thức',
-      statusText || 'Đang làm việc',
-      startDate || null,
-      targetId,
-      targetId
-    ]);
+      WHERE ma_nhan_vien = ? ${isNumericId ? 'OR id = ?' : ''}
+    `, isNumericId ? [...baseParams, targetId, targetId] : [...baseParams, targetId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy nhân viên để cập nhật' });
@@ -544,7 +648,11 @@ router.put('/employees/:id', async (req, res) => {
 router.delete('/employees/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
-    const [result] = await db.query('DELETE FROM nhan_vien WHERE ma_nhan_vien = ? OR id = ?', [targetId, targetId]);
+    const isNumericId = /^\d+$/.test(targetId);
+    const [result] = await db.query(
+      `DELETE FROM nhan_vien WHERE ma_nhan_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy nhân viên để xóa' });
@@ -780,7 +888,18 @@ router.post('/customers', async (req, res) => {
 router.put('/customers/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
     const { name, phone, nhanVienId, ngayDangKy, country, statusText, note } = req.body;
+
+    const updateParams = [
+      name,
+      phone || null,
+      nhanVienId || null,
+      ngayDangKy || null,
+      country || null,
+      statusText || 'Mới tiếp nhận',
+      note || null
+    ];
 
     const [result] = await db.query(`
       UPDATE khach_hang
@@ -792,18 +911,8 @@ router.put('/customers/:id', async (req, res) => {
         quoc_gia_quan_tam = ?,
         trang_thai = ?,
         ghi_chu = ?
-      WHERE ma_kh = ? OR id = ?
-    `, [
-      name,
-      phone || null,
-      nhanVienId || null,
-      ngayDangKy || null,
-      country || null,
-      statusText || 'Mới tiếp nhận',
-      note || null,
-      targetId,
-      targetId
-    ]);
+      WHERE ma_kh = ? ${isNumericId ? 'OR id = ?' : ''}
+    `, isNumericId ? [...updateParams, targetId, targetId] : [...updateParams, targetId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy khách hàng để cập nhật' });
@@ -820,7 +929,11 @@ router.put('/customers/:id', async (req, res) => {
 router.delete('/customers/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
-    const [result] = await db.query('DELETE FROM khach_hang WHERE ma_kh = ? OR id = ?', [targetId, targetId]);
+    const isNumericId = /^\d+$/.test(targetId);
+    const [result] = await db.query(
+      `DELETE FROM khach_hang WHERE ma_kh = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy khách hàng để xóa' });
@@ -874,6 +987,410 @@ router.post('/upload-avatar', avatarUpload.single('avatar'), async (req, res) =>
   } catch (err) {
     console.error('Lỗi tải ảnh đại diện:', err);
     res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// ---- Lịch tư vấn (consultation appointments) ----
+function mapAppointmentRow(r) {
+  const linkedName = r.khachHangName || r.hocVienName || null;
+  return {
+    id: r.id,
+    title: r.tieu_de,
+    displayTitle: linkedName ? `${r.tieu_de} · ${linkedName}` : r.tieu_de,
+    date: r.date,
+    time: r.time,
+    type: r.loai,
+    khachHangId: r.khach_hang_id,
+    hocVienId: r.hoc_vien_id,
+    nhanVienId: r.nhan_vien_id,
+    nhanVienName: r.nhanVienName,
+    note: r.ghi_chu,
+    status: r.trang_thai
+  };
+}
+
+const APPOINTMENT_SELECT = `
+  SELECT
+    lv.id, lv.tieu_de, lv.loai, lv.khach_hang_id, lv.hoc_vien_id, lv.nhan_vien_id, lv.ghi_chu, lv.trang_thai,
+    DATE_FORMAT(lv.thoi_gian, '%Y-%m-%d') as date,
+    DATE_FORMAT(lv.thoi_gian, '%H:%i') as time,
+    kh.ho_ten as khachHangName,
+    hv.ho_ten as hocVienName,
+    nv.ho_ten as nhanVienName
+  FROM lich_tu_van lv
+  LEFT JOIN khach_hang kh ON kh.id = lv.khach_hang_id
+  LEFT JOIN hoc_vien hv ON hv.id = lv.hoc_vien_id
+  LEFT JOIN nhan_vien nv ON nv.id = lv.nhan_vien_id
+`;
+
+// GET /api/appointments?start=YYYY-MM-DD&end=YYYY-MM-DD
+router.get('/appointments', async (req, res) => {
+  try {
+    const { start, end } = req.query;
+    let sql = APPOINTMENT_SELECT;
+    const params = [];
+    if (start && end) {
+      sql += ' WHERE DATE(lv.thoi_gian) BETWEEN ? AND ?';
+      params.push(start, end);
+    }
+    sql += ' ORDER BY lv.thoi_gian ASC';
+    const [rows] = await db.query(sql, params);
+    res.json({ appointments: rows.map(mapAppointmentRow) });
+  } catch (err) {
+    console.error('Lỗi API /api/appointments:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/appointments (Thêm lịch tư vấn)
+router.post('/appointments', async (req, res) => {
+  try {
+    const { title, datetime, type, khachHangId, hocVienId, nhanVienId, note, status } = req.body;
+    if (!title || !datetime) {
+      return res.status(400).json({ error: 'Thiếu tiêu đề hoặc thời gian' });
+    }
+    const [result] = await db.query(`
+      INSERT INTO lich_tu_van (tieu_de, thoi_gian, loai, khach_hang_id, hoc_vien_id, nhan_vien_id, ghi_chu, trang_thai)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      title,
+      normalizeDatetime(datetime),
+      type || 'khac',
+      khachHangId || null,
+      hocVienId || null,
+      nhanVienId || null,
+      note || null,
+      status || 'Đã đặt lịch'
+    ]);
+    res.status(201).json({ success: true, message: 'Đã thêm lịch tư vấn mới', insertedId: result.insertId });
+  } catch (err) {
+    console.error('Lỗi thêm lịch tư vấn:', err);
+    res.status(500).json({ error: 'Không thể thêm lịch tư vấn: ' + err.message });
+  }
+});
+
+// PUT /api/appointments/:id (Sửa lịch tư vấn)
+router.put('/appointments/:id', async (req, res) => {
+  try {
+    const { title, datetime, type, khachHangId, hocVienId, nhanVienId, note, status } = req.body;
+    const [result] = await db.query(`
+      UPDATE lich_tu_van
+      SET tieu_de = ?, thoi_gian = ?, loai = ?, khach_hang_id = ?, hoc_vien_id = ?, nhan_vien_id = ?, ghi_chu = ?, trang_thai = ?
+      WHERE id = ?
+    `, [
+      title,
+      normalizeDatetime(datetime),
+      type || 'khac',
+      khachHangId || null,
+      hocVienId || null,
+      nhanVienId || null,
+      note || null,
+      status || 'Đã đặt lịch',
+      req.params.id
+    ]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy lịch tư vấn để cập nhật' });
+    }
+    res.json({ success: true, message: 'Đã cập nhật lịch tư vấn!' });
+  } catch (err) {
+    console.error('Lỗi sửa lịch tư vấn:', err);
+    res.status(500).json({ error: 'Không thể cập nhật lịch tư vấn: ' + err.message });
+  }
+});
+
+// DELETE /api/appointments/:id
+router.delete('/appointments/:id', async (req, res) => {
+  try {
+    const [result] = await db.query('DELETE FROM lich_tu_van WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy lịch tư vấn để xóa' });
+    }
+    res.json({ success: true, message: 'Đã xóa lịch tư vấn' });
+  } catch (err) {
+    console.error('Lỗi xóa lịch tư vấn:', err);
+    res.status(500).json({ error: 'Không thể xóa lịch tư vấn: ' + err.message });
+  }
+});
+
+// ---- Cộng tác viên (referral collaborators — standalone, no FK to other tables) ----
+
+// GET /api/collaborators
+router.get('/collaborators', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT
+        id, ma_ctv as maCTV, ho_ten as name, so_dien_thoai as phone,
+        nguoi_gioi_thieu as referrer, trang_thai as statusText, ghi_chu as note,
+        DATE_FORMAT(ngay_dang_ky, '%Y-%m-%d') as registeredAtRaw,
+        IFNULL(DATE_FORMAT(ngay_dang_ky, '%d/%m/%Y'), DATE_FORMAT(created_at, '%d/%m/%Y')) as registeredAt,
+        created_at as createdAtRaw
+      FROM cong_tac_vien
+      ORDER BY id DESC
+    `);
+    res.json({ collaborators: rows.map(r => ({ ...r, id: r.maCTV, dbId: r.id })) });
+  } catch (err) {
+    console.error('Lỗi API /api/collaborators:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/collaborators (Thêm cộng tác viên)
+router.post('/collaborators', async (req, res) => {
+  try {
+    const { name, phone, referrer, statusText, registeredAt, note } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Tên cộng tác viên là bắt buộc' });
+    }
+    const [result] = await db.query(`
+      INSERT INTO cong_tac_vien (ma_ctv, ho_ten, so_dien_thoai, nguoi_gioi_thieu, trang_thai, ngay_dang_ky, ghi_chu)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, ['TEMP', name, phone || null, referrer || null, statusText || 'Chờ duyệt', registeredAt || null, note || null]);
+
+    const ma_ctv = 'CTV-' + String(result.insertId).padStart(4, '0');
+    await db.query('UPDATE cong_tac_vien SET ma_ctv = ? WHERE id = ?', [ma_ctv, result.insertId]);
+
+    res.status(201).json({ success: true, message: `Đã thêm cộng tác viên ${name} (${ma_ctv})!`, insertedId: result.insertId, ma_ctv });
+  } catch (err) {
+    console.error('Lỗi thêm cộng tác viên:', err);
+    res.status(500).json({ error: 'Không thể thêm cộng tác viên: ' + err.message });
+  }
+});
+
+// PUT /api/collaborators/:id (Sửa cộng tác viên)
+router.put('/collaborators/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
+    const { name, phone, referrer, statusText, registeredAt, note } = req.body;
+    const [result] = await db.query(`
+      UPDATE cong_tac_vien
+      SET ho_ten = ?, so_dien_thoai = ?, nguoi_gioi_thieu = ?, trang_thai = ?, ngay_dang_ky = ?, ghi_chu = ?
+      WHERE ma_ctv = ? ${isNumericId ? 'OR id = ?' : ''}
+    `, isNumericId
+      ? [name, phone || null, referrer || null, statusText || 'Chờ duyệt', registeredAt || null, note || null, targetId, targetId]
+      : [name, phone || null, referrer || null, statusText || 'Chờ duyệt', registeredAt || null, note || null, targetId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy cộng tác viên để cập nhật' });
+    }
+    res.json({ success: true, message: `Đã cập nhật thông tin ${name}!` });
+  } catch (err) {
+    console.error('Lỗi sửa cộng tác viên:', err);
+    res.status(500).json({ error: 'Không thể cập nhật cộng tác viên: ' + err.message });
+  }
+});
+
+// DELETE /api/collaborators/:id
+router.delete('/collaborators/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
+    const [result] = await db.query(
+      `DELETE FROM cong_tac_vien WHERE ma_ctv = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy cộng tác viên để xóa' });
+    }
+    res.json({ success: true, message: 'Đã xóa cộng tác viên khỏi CSDL' });
+  } catch (err) {
+    console.error('Lỗi xóa cộng tác viên:', err);
+    res.status(500).json({ error: 'Không thể xóa cộng tác viên: ' + err.message });
+  }
+});
+
+// ---- Test năng lực nhân viên (competency exams) ----
+
+function mapQuestionRow(q) {
+  return {
+    id: q.id,
+    order: q.thu_tu,
+    content: q.noi_dung,
+    optionA: q.dap_an_a,
+    optionB: q.dap_an_b,
+    optionC: q.dap_an_c,
+    optionD: q.dap_an_d,
+    correctAnswer: q.dap_an_dung
+  };
+}
+
+// GET /api/competency-exams
+router.get('/competency-exams', async (req, res) => {
+  try {
+    const { department } = req.query;
+    const params = [];
+    let where = '';
+    if (department) { where = 'WHERE d.phong_ban = ?'; params.push(department); }
+    const [rows] = await db.query(`
+      SELECT
+        d.id, d.ten_de as name, d.phong_ban as department, d.trang_thai as status,
+        DATE_FORMAT(d.created_at, '%d/%m/%Y') as createdAt,
+        (SELECT COUNT(*) FROM cau_hoi_test c WHERE c.de_thi_id = d.id) as questionCount,
+        (SELECT COUNT(*) FROM bai_lam_test b WHERE b.de_thi_id = d.id) as attemptCount
+      FROM de_thi d
+      ${where}
+      ORDER BY d.id DESC
+    `, params);
+    res.json({ exams: rows, departments: DEPARTMENTS });
+  } catch (err) {
+    console.error('Lỗi lấy danh sách đề thi:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// GET /api/competency-exams/:id
+router.get('/competency-exams/:id', async (req, res) => {
+  try {
+    const [[exam]] = await db.query(`
+      SELECT id, ten_de as name, phong_ban as department, trang_thai as status,
+        DATE_FORMAT(created_at, '%d/%m/%Y') as createdAt
+      FROM de_thi WHERE id = ?
+    `, [req.params.id]);
+    if (!exam) return res.status(404).json({ error: 'Không tìm thấy đề thi' });
+    const [questions] = await db.query('SELECT * FROM cau_hoi_test WHERE de_thi_id = ? ORDER BY thu_tu ASC, id ASC', [req.params.id]);
+    res.json({ exam: { ...exam, questions: questions.map(mapQuestionRow) } });
+  } catch (err) {
+    console.error('Lỗi lấy chi tiết đề thi:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+function validateQuestions(questions) {
+  if (!Array.isArray(questions) || questions.length === 0) return 'Đề thi cần ít nhất 1 câu hỏi';
+  for (const q of questions) {
+    if (!q.content || !q.optionA || !q.optionB || !q.optionC || !q.optionD) return 'Vui lòng nhập đầy đủ nội dung và 4 đáp án cho mỗi câu hỏi';
+    if (!['A', 'B', 'C', 'D'].includes(q.correctAnswer)) return 'Vui lòng chọn đáp án đúng cho mỗi câu hỏi';
+  }
+  return null;
+}
+
+// POST /api/competency-exams
+router.post('/competency-exams', async (req, res) => {
+  const { name, department, questions } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Tên đề thi là bắt buộc' });
+  if (!DEPARTMENTS.includes(department)) return res.status(400).json({ error: 'Phòng ban không hợp lệ' });
+  const qError = validateQuestions(questions);
+  if (qError) return res.status(400).json({ error: qError });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'INSERT INTO de_thi (ten_de, phong_ban, trang_thai, created_by) VALUES (?, ?, ?, ?)',
+      [name, department, 'active', req.user?.id || null]
+    );
+    const examId = result.insertId;
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      await conn.query(
+        'INSERT INTO cau_hoi_test (de_thi_id, thu_tu, noi_dung, dap_an_a, dap_an_b, dap_an_c, dap_an_d, dap_an_dung) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [examId, i, q.content, q.optionA, q.optionB, q.optionC, q.optionD, q.correctAnswer]
+      );
+    }
+    await conn.commit();
+    res.status(201).json({ success: true, message: `Đã tạo đề thi "${name}"!`, examId });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi tạo đề thi:', err);
+    res.status(500).json({ error: 'Không thể tạo đề thi: ' + err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+// PUT /api/competency-exams/:id
+router.put('/competency-exams/:id', async (req, res) => {
+  const { name, department, status, questions } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Tên đề thi là bắt buộc' });
+  if (!DEPARTMENTS.includes(department)) return res.status(400).json({ error: 'Phòng ban không hợp lệ' });
+  const qError = validateQuestions(questions);
+  if (qError) return res.status(400).json({ error: qError });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'UPDATE de_thi SET ten_de = ?, phong_ban = ?, trang_thai = ? WHERE id = ?',
+      [name, department, status === 'inactive' ? 'inactive' : 'active', req.params.id]
+    );
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Không tìm thấy đề thi để cập nhật' });
+    }
+    await conn.query('DELETE FROM cau_hoi_test WHERE de_thi_id = ?', [req.params.id]);
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      await conn.query(
+        'INSERT INTO cau_hoi_test (de_thi_id, thu_tu, noi_dung, dap_an_a, dap_an_b, dap_an_c, dap_an_d, dap_an_dung) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [req.params.id, i, q.content, q.optionA, q.optionB, q.optionC, q.optionD, q.correctAnswer]
+      );
+    }
+    await conn.commit();
+    res.json({ success: true, message: `Đã cập nhật đề thi "${name}"!` });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi sửa đề thi:', err);
+    res.status(500).json({ error: 'Không thể cập nhật đề thi: ' + err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+// DELETE /api/competency-exams/:id
+router.delete('/competency-exams/:id', async (req, res) => {
+  try {
+    const [result] = await db.query('DELETE FROM de_thi WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy đề thi để xóa' });
+    res.json({ success: true, message: 'Đã xóa đề thi khỏi CSDL' });
+  } catch (err) {
+    console.error('Lỗi xóa đề thi:', err);
+    res.status(500).json({ error: 'Không thể xóa đề thi: ' + err.message });
+  }
+});
+
+// GET /api/competency-results
+router.get('/competency-results', async (req, res) => {
+  try {
+    const { department, search } = req.query;
+    const params = [];
+    const clauses = [];
+    if (department) { clauses.push('nv.bo_phan = ?'); params.push(department); }
+    if (search && search.trim()) { clauses.push('nv.ho_ten LIKE ?'); params.push(`%${search.trim()}%`); }
+    const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
+
+    const [rows] = await db.query(`
+      SELECT
+        b.id, b.so_cau_dung as correct, b.tong_cau as total,
+        DATE_FORMAT(b.ngay_lam, '%d/%m/%Y') as takenAt,
+        nv.id as employeeId, nv.ho_ten as employeeName, nv.bo_phan as department,
+        d.ten_de as examName
+      FROM bai_lam_test b
+      JOIN nhan_vien nv ON nv.id = b.nhan_vien_id
+      JOIN de_thi d ON d.id = b.de_thi_id
+      ${where}
+      ORDER BY b.id DESC
+    `, params);
+
+    res.json({
+      results: rows.map(r => {
+        const { label, tier } = computeXepLoai(r.correct, r.total);
+        return {
+          id: r.id,
+          employeeName: r.employeeName,
+          department: r.department,
+          examName: r.examName,
+          correct: r.correct,
+          total: r.total,
+          takenAt: r.takenAt,
+          rating: label,
+          ratingTier: tier
+        };
+      }),
+      departments: DEPARTMENTS
+    });
+  } catch (err) {
+    console.error('Lỗi lấy kết quả test năng lực:', err);
+    res.status(500).json({ error: 'Database query failed' });
   }
 });
 

@@ -6,6 +6,9 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import CustomersPage from './pages/CustomersPage';
+import CollaboratorsPage from './pages/CollaboratorsPage';
+import CompetencyTestPage from './pages/CompetencyTestPage';
+import CompetencyTestBuilderPage from './pages/CompetencyTestBuilderPage';
 import SchoolsPage from './pages/SchoolsPage';
 import ConsultPage from './pages/ConsultPage';
 import RevenuePage from './pages/RevenuePage';
@@ -26,6 +29,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('overview');
   const [selectedStudentId, setSelectedStudentId] = useState('HV001');
   const [selectedEmpId, setSelectedEmpId] = useState('NV001');
+  const [selectedExamId, setSelectedExamId] = useState(null);
   const [adminUser, setAdminUser] = useState(readStoredAdmin);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('aladdin_token'));
 
@@ -75,6 +79,13 @@ export default function App() {
           <EmployeeDetailPage empId={selectedEmpId} setCurrentPage={setCurrentPage} setSelectedStudentId={setSelectedStudentId} />
         )}
         {currentPage === 'customers' && <CustomersPage />}
+        {currentPage === 'collaborators' && <CollaboratorsPage />}
+        {currentPage === 'competency' && (
+          <CompetencyTestPage setCurrentPage={setCurrentPage} setSelectedExamId={setSelectedExamId} />
+        )}
+        {currentPage === 'competency-builder' && (
+          <CompetencyTestBuilderPage examId={selectedExamId} setCurrentPage={setCurrentPage} />
+        )}
         {currentPage === 'schools' && <SchoolsPage />}
         {currentPage === 'consult' && <ConsultPage />}
         {currentPage === 'revenue' && <RevenuePage />}

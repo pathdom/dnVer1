@@ -22,7 +22,7 @@ export default function AccountsPage() {
   const [activeModal, setActiveModal] = useState(null); // 'createStaff', 'createStudent', 'resetStaff', 'resetStudent'
 
   // Form States
-  const [staffForm, setStaffForm] = useState({ name: '', email: '', dept: 'Tư vấn tuyển sinh', role: 'Nhân viên', password: 'Vb7x92Km' });
+  const [staffForm, setStaffForm] = useState({ name: '', email: '', dept: 'Kinh doanh', role: 'Nhân viên', password: 'Vb7x92Km' });
   const [studentForm, setStudentForm] = useState({ student: 'Nguyễn Thị Lan Anh — HV-2451', email: '', password: 'Hs4mQ81p' });
   const [resetStaffForm, setResetStaffForm] = useState({ staff: 'Minh Hằng — admin@aladdin.vn', password: 'Kt2vB58r' });
   const [resetStudentForm, setResetStudentForm] = useState({ student: 'Nguyễn Thị Lan Anh — HV-2451', password: 'Sv9pL34w' });
@@ -85,7 +85,7 @@ export default function AccountsPage() {
     setAccounts([newAcct, ...accounts]);
     setActiveModal(null);
     showToast(`Đã tạo tài khoản nhân viên cho "${staffForm.name}"`);
-    setStaffForm({ name: '', email: '', dept: 'Tư vấn tuyển sinh', role: 'Nhân viên', password: generatePassword() });
+    setStaffForm({ name: '', email: '', dept: 'Kinh doanh', role: 'Nhân viên', password: generatePassword() });
   };
 
   // Create Student Account
@@ -303,10 +303,12 @@ export default function AccountsPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Phòng ban</label>
                   <select value={staffForm.dept} onChange={e => setStaffForm({ ...staffForm, dept: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                    <option>Tư vấn tuyển sinh</option>
-                    <option>Xử lý hồ sơ</option>
+                    <option>Hành chính kế toán</option>
                     <option>Marketing</option>
-                    <option>Kế toán</option>
+                    <option>Đối ngoại</option>
+                    <option>Hồ sơ</option>
+                    <option>Đào tạo</option>
+                    <option>Kinh doanh</option>
                   </select>
                 </div>
                 <div>

@@ -1,0 +1,4 @@
+==================================================
+🟢 Express Server đang chạy tại: http://localhost:5000
+==================================================
+✅ Kết nối MySQL thành công tới database [quan_ly_trung_tam]!

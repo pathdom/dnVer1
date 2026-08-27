@@ -21,9 +21,9 @@ async function seedData() {
     await db.query(`
       INSERT INTO nhan_vien (ma_nhan_vien, ho_ten, so_dien_thoai, email, bo_phan, chuc_danh, ngay_vao_lam, hinh_thuc, trang_thai, created_at)
       VALUES
-      ('NV101', 'Trần Minh Khoa', '0912349999', 'khoa.tran@aladdin.vn', 'Tư vấn', 'Trưởng nhóm tư vấn', '2024-03-01', 'Full-time', 'Đang làm việc', NOW()),
-      ('NV102', 'Lê Thị Hồng', '0912348888', 'hong.le@aladdin.vn', 'Tư vấn', 'Chuyên viên tư vấn', '2024-06-15', 'Full-time', 'Đang làm việc', NOW()),
-      ('NV103', 'Vũ Hoàng Nam', '0912347777', 'nam.vu@aladdin.vn', 'Chăm sóc học viên', 'Chuyên viên CSKH', '2025-01-10', 'Full-time', 'Đang làm việc', NOW())
+      ('NV101', 'Trần Minh Khoa', '0912349999', 'khoa.tran@aladdin.vn', 'Kinh doanh', 'Trưởng nhóm tư vấn', '2024-03-01', 'Full-time', 'Đang làm việc', NOW()),
+      ('NV102', 'Lê Thị Hồng', '0912348888', 'hong.le@aladdin.vn', 'Kinh doanh', 'Chuyên viên tư vấn', '2024-06-15', 'Full-time', 'Đang làm việc', NOW()),
+      ('NV103', 'Vũ Hoàng Nam', '0912347777', 'nam.vu@aladdin.vn', 'Hồ sơ', 'Chuyên viên CSKH', '2025-01-10', 'Full-time', 'Đang làm việc', NOW())
       ON DUPLICATE KEY UPDATE ho_ten=VALUES(ho_ten);
     `);
 

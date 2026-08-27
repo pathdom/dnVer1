@@ -20,7 +20,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
     name: '',
     email: '',
     phone: '',
-    department: 'Tư vấn tuyển sinh',
+    department: 'Kinh doanh',
     role: 'Chuyên viên tư vấn',
     workType: 'Chính thức',
     statusText: 'Đang làm việc',
@@ -56,7 +56,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       name: '',
       email: '',
       phone: '',
-      department: 'Tư vấn tuyển sinh',
+      department: 'Kinh doanh',
       role: 'Chuyên viên tư vấn',
       workType: 'Chính thức',
       statusText: 'Đang làm việc',
@@ -71,7 +71,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       name: emp.name || '',
       email: emp.email || '',
       phone: emp.phone || '',
-      department: emp.department || 'Tư vấn tuyển sinh',
+      department: emp.department || 'Kinh doanh',
       role: emp.role || 'Chuyên viên tư vấn',
       workType: emp.workType || 'Chính thức',
       statusText: emp.statusText || 'Đang làm việc',
@@ -134,9 +134,12 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
 
   // Tag styling cho phòng ban
   const getDeptTagStyle = (dept = '') => {
-    if (dept.includes('Tư vấn')) return { background: 'var(--teal-soft)', color: 'var(--teal)' };
-    if (dept.includes('Hồ sơ')) return { background: '#E7EEFC', color: '#3B6FD1' };
+    if (dept.includes('Kinh doanh')) return { background: 'var(--teal-soft)', color: 'var(--teal)' };
     if (dept.includes('Marketing')) return { background: 'var(--gold-soft)', color: 'var(--gold)' };
+    if (dept.includes('Đối ngoại')) return { background: 'var(--coral-soft)', color: 'var(--coral)' };
+    if (dept.includes('Hồ sơ')) return { background: '#E7EEFC', color: '#3B6FD1' };
+    if (dept.includes('Đào tạo')) return { background: 'var(--green-soft)', color: 'var(--green)' };
+    if (dept.includes('Hành chính')) return { background: '#F1E9FB', color: '#7C3AED' };
     return { background: 'var(--teal-soft)', color: 'var(--teal)' };
   };
 
@@ -153,7 +156,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
     let matchFilter = true;
     if (filter !== 'all') {
       const dep = (e.department || '').toLowerCase();
-      if (filter === 'tuvan') matchFilter = dep.includes('tư vấn');
+      if (filter === 'tuvan') matchFilter = dep.includes('kinh doanh');
       else if (filter === 'hoso') matchFilter = dep.includes('hồ sơ');
       else if (filter === 'active') matchFilter = (e.statusText || '').toLowerCase().includes('làm');
     }
@@ -185,7 +188,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
     setSearch('');
   };
 
-  const tuVanCount = employees.filter(e => (e.department || '').includes('Tư vấn')).length;
+  const kinhDoanhCount = employees.filter(e => (e.department || '').includes('Kinh doanh')).length;
   const hoSoCount = employees.filter(e => (e.department || '').includes('Hồ sơ')).length;
   const activeCount = employees.filter(e => (e.statusText || '').includes('làm')).length;
 
@@ -217,8 +220,8 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
           <div className="stat-label">Tổng nhân viên CSDL</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{tuVanCount}</div>
-          <div className="stat-label">Phòng tư vấn tuyển sinh</div>
+          <div className="stat-value">{kinhDoanhCount}</div>
+          <div className="stat-label">Phòng Kinh doanh</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{hoSoCount}</div>
@@ -234,7 +237,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', background: 'var(--surface)', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Tất cả ({employees.length})</div>
-          <div className={`chip ${filter === 'tuvan' ? 'active' : ''}`} onClick={() => setFilter('tuvan')}>Phòng tư vấn ({tuVanCount})</div>
+          <div className={`chip ${filter === 'tuvan' ? 'active' : ''}`} onClick={() => setFilter('tuvan')}>Phòng kinh doanh ({kinhDoanhCount})</div>
           <div className={`chip ${filter === 'hoso' ? 'active' : ''}`} onClick={() => setFilter('hoso')}>Phòng hồ sơ ({hoSoCount})</div>
           <div className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Đang làm việc ({activeCount})</div>
         </div>
@@ -334,7 +337,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ fontWeight: '600', color: 'var(--navy)' }}>{emp.role || 'Nhân viên'}</div>
                       <span className="dept-tag" style={{ ...getDeptTagStyle(emp.department), padding: '2px 8px', borderRadius: '6px', fontSize: '10.5px', fontWeight: '700', marginTop: '2px', display: 'inline-block' }}>
-                        {emp.department || 'Tư vấn tuyển sinh'}
+                        {emp.department || 'Kinh doanh'}
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: '500' }}>{emp.workType || 'Chính thức'}</td>
@@ -422,10 +425,12 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Phòng ban</label>
                   <select name="department" value={formData.department} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    <option value="Tư vấn tuyển sinh">Phòng tư vấn tuyển sinh</option>
-                    <option value="Xử lý hồ sơ">Phòng xử lý hồ sơ</option>
-                    <option value="Marketing">Phòng Marketing</option>
-                    <option value="Chăm sóc học viên">Phòng chăm sóc học viên</option>
+                    <option value="Hành chính kế toán">Hành chính kế toán</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Đối ngoại">Đối ngoại</option>
+                    <option value="Hồ sơ">Hồ sơ</option>
+                    <option value="Đào tạo">Đào tạo</option>
+                    <option value="Kinh doanh">Kinh doanh</option>
                   </select>
                 </div>
               </div>

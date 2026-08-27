@@ -59,6 +59,7 @@ body {
 .stamp-coral { color: var(--coral); background: var(--coral-soft); }
 .stamp-teal { color: var(--teal); background: var(--teal-soft); }
 .stamp-blue { color: var(--blue); background: var(--blue-soft); }
+.stamp-gray { color: var(--text-faint); background: #EFF0F5; }
 
 /* ============ LOGIN PAGE (sáng) ============ */
 .login-page { display: flex; min-height: 100vh; }
