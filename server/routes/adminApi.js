@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const db = require('../db');
+const { verifyPassword } = require('../lib/password');
 
-// Admin Login: check DB table `admin`
+// Admin Login: check DB table `tai_khoan_admin`
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -12,16 +12,18 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Thiếu tên đăng nhập hoặc mật khẩu' });
     }
 
-    const [rows] = await db.query('SELECT * FROM admin WHERE username = ?', [username]);
+    const [rows] = await db.query('SELECT * FROM tai_khoan_admin WHERE username = ?', [username]);
     if (rows.length === 0) {
       return res.status(401).json({ success: false, error: 'Sai tên đăng nhập hoặc mật khẩu' });
     }
 
     const a = rows[0];
-    const match = await bcrypt.compare(password, a.password_hash || '');
+    const match = await verifyPassword(password, a.password_hash || '');
     if (!match) {
       return res.status(401).json({ success: false, error: 'Sai tên đăng nhập hoặc mật khẩu' });
     }
+
+    await db.query('UPDATE tai_khoan_admin SET last_login = NOW() WHERE id = ?', [a.id]);
 
     const token = jwt.sign({ id: a.id, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({

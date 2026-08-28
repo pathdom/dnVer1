@@ -4,9 +4,16 @@ import ProfileMenu from './ProfileMenu';
 
 export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout, onAvatarChange }) {
   const [stats, setStats] = useState({ totalStudents: '...', activeEmployees: '...', partnerSchools: '...', totalCustomers: '...', totalCollaborators: '...', totalCompetencyExams: '...', weekAppointments: '' });
-  const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('aladdin_logo') || null);
+  const [companyLogo, setCompanyLogo] = useState(null);
   const [chatUnread, setChatUnread] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+
+  const fetchLogo = () => {
+    apiFetch('/api/settings/logo')
+      .then(res => res.json())
+      .then(d => setCompanyLogo(d.logoUrl || null))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     apiFetch('/api/overview')
@@ -18,11 +25,9 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
       })
       .catch(() => {});
 
-    const handleLogoUpdate = () => {
-      setCompanyLogo(localStorage.getItem('aladdin_logo') || null);
-    };
-    window.addEventListener('logoUpdated', handleLogoUpdate);
-    return () => window.removeEventListener('logoUpdated', handleLogoUpdate);
+    fetchLogo();
+    window.addEventListener('logoUpdated', fetchLogo);
+    return () => window.removeEventListener('logoUpdated', fetchLogo);
   }, []);
 
   useEffect(() => {
@@ -124,13 +129,13 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
         </button>
 
         <button
-          className={`nav-item ${currentPage === 'competency' || currentPage === 'competency-builder' ? 'active' : ''}`}
+          className={`nav-item ${currentPage === 'competency' ? 'active' : ''}`}
           onClick={() => setCurrentPage('competency')}
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
-          Test năng lực nhân viên<span className="count">{stats.totalCompetencyExams}</span>
+          Bài test<span className="count">{stats.totalCompetencyExams}</span>
         </button>
 
         <button

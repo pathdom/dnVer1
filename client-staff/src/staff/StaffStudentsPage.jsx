@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
+import StaffStudentDetailPage from './StaffStudentDetailPage';
 
 export default function StaffStudentsPage() {
   const [students, setStudents] = useState([]);
+  const [tinhThanh, setTinhThanh] = useState([]);
+  const [quocGia, setQuocGia] = useState([]);
   const [filter, setFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -13,17 +16,21 @@ export default function StaffStudentsPage() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [formData, setFormData] = useState({
+
+  const [viewingStudentId, setViewingStudentId] = useState(null);
+
+  const emptyForm = () => ({
     name: '',
     email: '',
     phone: '',
-    hometown: '',
-    country: 'Nhật Bản',
+    tinhThanhId: tinhThanh[0]?.id || '',
+    quocGiaId: quocGia[0]?.id || '',
     statusText: 'Đang học tiếng',
     ngayNhapHoc: '',
     tienDaDong: '',
     tongTien: ''
   });
+  const [formData, setFormData] = useState(emptyForm());
 
   const fetchStudents = () => {
     setLoading(true);
@@ -39,8 +46,19 @@ export default function StaffStudentsPage() {
       });
   };
 
+  const fetchLookups = () => {
+    apiFetch('/api/lookups')
+      .then(res => res.json())
+      .then(d => {
+        setTinhThanh(d.tinhThanh || []);
+        setQuocGia(d.quocGia || []);
+      })
+      .catch(err => console.error('Fetch lookups error:', err));
+  };
+
   useEffect(() => {
     fetchStudents();
+    fetchLookups();
   }, []);
 
   const handleInputChange = (e) => {
@@ -50,17 +68,7 @@ export default function StaffStudentsPage() {
 
   const handleOpenAddModal = () => {
     setEditingStudent(null);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      hometown: '',
-      country: 'Nhật Bản',
-      statusText: 'Đang học tiếng',
-      ngayNhapHoc: '',
-      tienDaDong: '',
-      tongTien: ''
-    });
+    setFormData(emptyForm());
     setIsModalOpen(true);
   };
 
@@ -70,8 +78,8 @@ export default function StaffStudentsPage() {
       name: student.name || '',
       email: student.email || '',
       phone: student.phone || '',
-      hometown: student.hometown || '',
-      country: student.country || 'Nhật Bản',
+      tinhThanhId: student.tinhThanhId || tinhThanh[0]?.id || '',
+      quocGiaId: student.quocGiaId || quocGia[0]?.id || '',
       statusText: student.statusText || 'Đang học tiếng',
       ngayNhapHoc: student.ngayNhapHocRaw || '',
       tienDaDong: student.tienDaDong || '',
@@ -188,6 +196,15 @@ export default function StaffStudentsPage() {
     setSearch('');
   };
 
+  if (viewingStudentId) {
+    return (
+      <StaffStudentDetailPage
+        studentId={viewingStudentId}
+        onBack={() => { setViewingStudentId(null); fetchStudents(); }}
+      />
+    );
+  }
+
   return (
     <section className="page active">
       <div className="topbar">
@@ -226,13 +243,7 @@ export default function StaffStudentsPage() {
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13px', background: 'var(--bg)', color: 'var(--navy)', fontWeight: '500', cursor: 'pointer' }}
           >
             <option value="all">🌐 Tất cả quốc gia</option>
-            <option value="Nhật Bản">✈️ Nhật Bản</option>
-            <option value="Đức">✈️ Đức</option>
-            <option value="Mỹ">✈️ Mỹ</option>
-            <option value="Úc">✈️ Úc</option>
-            <option value="Hàn Quốc">✈️ Hàn Quốc</option>
-            <option value="Anh">✈️ Anh</option>
-            <option value="Canada">✈️ Canada</option>
+            {quocGia.map(q => <option key={q.id} value={q.name}>✈️ {q.name}</option>)}
           </select>
         </div>
 
@@ -269,7 +280,7 @@ export default function StaffStudentsPage() {
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 <th>Mã HV</th>
-                <th>Học viên / Email</th>
+                <th>Học viên</th>
                 <th>Số điện thoại</th>
                 <th>Quê quán</th>
                 <th>Quốc gia đến</th>
@@ -305,11 +316,8 @@ export default function StaffStudentsPage() {
                     <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', color: 'var(--teal)' }}>{s.id}</td>
                     <td>
                       <div className="cell-person">
-                        <div className="avatar">{s.avatar}</div>
-                        <div>
-                          <div className="cell-name">{s.name}</div>
-                          <div className="cell-sub">{s.email || 'Chưa có email'}</div>
-                        </div>
+                        <div className="avatar" style={{ flex: 'none' }}>{s.avatar}</div>
+                        <div className="cell-name">{s.name}</div>
                       </div>
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{s.phone || 'N/A'}</td>
@@ -329,6 +337,7 @@ export default function StaffStudentsPage() {
                         <button
                           className="row-action"
                           title="Xem chi tiết"
+                          onClick={() => setViewingStudentId(s.id)}
                           style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px', cursor: 'pointer' }}
                         >
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -389,20 +398,17 @@ export default function StaffStudentsPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quê quán</label>
-                  <input name="hometown" value={formData.hometown} onChange={handleInputChange} placeholder="Hà Nội / Nghệ An / ..." style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <select name="tinhThanhId" value={formData.tinhThanhId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {tinhThanh.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia đến</label>
-                  <select name="country" value={formData.country} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    <option value="Nhật Bản">✈️ Nhật Bản</option>
-                    <option value="Đức">✈️ Đức</option>
-                    <option value="Mỹ">✈️ Mỹ</option>
-                    <option value="Úc">✈️ Úc</option>
-                    <option value="Hàn Quốc">✈️ Hàn Quốc</option>
-                    <option value="Anh">✈️ Anh</option>
+                  <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {quocGia.map(q => <option key={q.id} value={q.id}>✈️ {q.name}</option>)}
                   </select>
                 </div>
                 <div>

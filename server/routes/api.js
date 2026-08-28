@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-const { DEPARTMENTS, computeXepLoai } = require('../lib/competency');
+const { verifyPassword } = require('../lib/password');
 
 const avatarUploadDir = path.join(__dirname, '..', 'uploads', 'avatars');
 fs.mkdirSync(avatarUploadDir, { recursive: true });
@@ -17,6 +17,24 @@ const avatarUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
 });
+
+// Company logo — a single shared file (any authenticated portal can read it),
+// so admin/staff/student all show the same real logo instead of each app
+// keeping its own separate copy in browser localStorage.
+const logoUploadDir = path.join(__dirname, '..', 'uploads', 'company');
+fs.mkdirSync(logoUploadDir, { recursive: true });
+const logoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, logoUploadDir),
+    filename: (req, file, cb) => cb(null, 'logo' + path.extname(file.originalname))
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
+});
+function currentLogoFile() {
+  const existing = fs.readdirSync(logoUploadDir).filter(f => f.startsWith('logo.'));
+  return existing[0] || null;
+}
 
 // Helper format VND
 function formatVND(val) {
@@ -38,6 +56,20 @@ function normalizeDatetime(val) {
   return (val || '').replace('T', ' ');
 }
 
+// GET /api/lookups — danh mục phòng ban / chức danh / quốc gia / tỉnh thành dùng chung
+router.get('/lookups', async (req, res) => {
+  try {
+    const [boPhan] = await db.query('SELECT id, ten_bo_phan as name FROM bo_phan ORDER BY id');
+    const [chucDanh] = await db.query('SELECT id, ten_chuc_danh as name FROM chuc_danh ORDER BY id');
+    const [quocGia] = await db.query('SELECT id, ten_quoc_gia as name FROM quoc_gia ORDER BY id');
+    const [tinhThanh] = await db.query('SELECT id, ten_tinh as name FROM tinh_thanh ORDER BY id');
+    res.json({ boPhan, chucDanh, quocGia, tinhThanh });
+  } catch (err) {
+    console.error('Lỗi API /api/lookups:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
 // GET /api/overview
 router.get('/overview', async (req, res) => {
   try {
@@ -45,36 +77,39 @@ router.get('/overview', async (req, res) => {
     const [[{ activeEmployees }]] = await db.query("SELECT COUNT(*) as activeEmployees FROM nhan_vien WHERE trang_thai = 'Đang làm việc'");
     const [[{ totalProjects }]] = await db.query('SELECT COUNT(*) as totalProjects FROM du_an');
     const [[{ totalCollaborators }]] = await db.query('SELECT COUNT(*) as totalCollaborators FROM cong_tac_vien');
-    const [[{ totalCompetencyExams }]] = await db.query('SELECT COUNT(*) as totalCompetencyExams FROM de_thi');
+    const [[{ totalCompetencyExams }]] = await db.query('SELECT COUNT(*) as totalCompetencyExams FROM test_nang_luc');
     const [[{ totalRevenue }]] = await db.query('SELECT COALESCE(SUM(tien_da_dong), 0) as totalRevenue FROM hoc_vien');
     const [[{ totalCustomers }]] = await db.query('SELECT COUNT(*) as totalCustomers FROM khach_hang');
     const [[{ unassignedCustomers }]] = await db.query('SELECT COUNT(*) as unassignedCustomers FROM khach_hang WHERE nhan_vien_id IS NULL');
 
     const [recentStudents] = await db.query(`
       SELECT
-        id,
-        ma_hoc_vien as maHV,
-        ho_ten as name,
-        email,
-        so_dien_thoai as phone,
-        que_quan as hometown,
-        quoc_gia_den as country,
-        trang_thai_ho_so as statusText,
-        lo_trinh as program,
-        IFNULL(DATE_FORMAT(ngay_nhap_hoc, '%d/%m/%Y'), DATE_FORMAT(created_at, '%d/%m/%Y')) as ngayNhapHoc,
-        IFNULL(tien_da_dong, 0) as tienDaDong,
-        IFNULL(tong_tien, 0) as tongTien,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
-      FROM hoc_vien
-      ORDER BY id DESC
+        hv.id,
+        hv.ma_hoc_vien as maHV,
+        hv.ho_ten as name,
+        hv.email,
+        hv.so_dien_thoai as phone,
+        tt.ten_tinh as hometown,
+        qg.ten_quoc_gia as country,
+        hv.trang_thai_ho_so as statusText,
+        hv.lo_trinh as program,
+        IFNULL(DATE_FORMAT(hv.ngay_nhap_hoc, '%d/%m/%Y'), DATE_FORMAT(hv.created_at, '%d/%m/%Y')) as ngayNhapHoc,
+        IFNULL(hv.tien_da_dong, 0) as tienDaDong,
+        IFNULL(hv.tong_tien, 0) as tongTien,
+        IFNULL(DATE_FORMAT(hv.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM hoc_vien hv
+      LEFT JOIN tinh_thanh tt ON tt.id = hv.tinh_thanh_id
+      LEFT JOIN quoc_gia qg ON qg.id = hv.quoc_gia_id
+      ORDER BY hv.id DESC
       LIMIT 6
     `);
 
     // Phân bố học viên theo quốc gia (cho biểu đồ tròn)
     const [countryRows] = await db.query(`
-      SELECT COALESCE(quoc_gia_den, 'Chưa xác định') as country, COUNT(*) as count
-      FROM hoc_vien
-      GROUP BY COALESCE(quoc_gia_den, 'Chưa xác định')
+      SELECT COALESCE(qg.ten_quoc_gia, 'Chưa xác định') as country, COUNT(*) as count
+      FROM hoc_vien hv
+      LEFT JOIN quoc_gia qg ON qg.id = hv.quoc_gia_id
+      GROUP BY COALESCE(qg.ten_quoc_gia, 'Chưa xác định')
       ORDER BY count DESC
     `);
     const destinations = countryRows.map(r => ({
@@ -182,24 +217,28 @@ router.get('/overview', async (req, res) => {
 router.get('/students', async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT 
-        id,
-        ma_hoc_vien as maHV,
-        ho_ten as name,
-        email,
-        so_dien_thoai as phone,
-        que_quan as hometown,
-        quoc_gia_den as country,
-        trang_thai_ho_so as statusText,
-        lo_trinh as program,
-        IFNULL(DATE_FORMAT(ngay_nhap_hoc, '%Y-%m-%d'), '') as ngayNhapHocRaw,
-        IFNULL(DATE_FORMAT(ngay_nhap_hoc, '%d/%m/%Y'), DATE_FORMAT(created_at, '%d/%m/%Y')) as ngayNhapHoc,
-        nhan_vien_id as nhanVienId,
-        IFNULL(tien_da_dong, 0) as tienDaDong,
-        IFNULL(tong_tien, 0) as tongTien,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
-      FROM hoc_vien
-      ORDER BY id DESC
+      SELECT
+        hv.id,
+        hv.ma_hoc_vien as maHV,
+        hv.ho_ten as name,
+        hv.email,
+        hv.so_dien_thoai as phone,
+        hv.tinh_thanh_id as tinhThanhId,
+        tt.ten_tinh as hometown,
+        hv.quoc_gia_id as quocGiaId,
+        qg.ten_quoc_gia as country,
+        hv.trang_thai_ho_so as statusText,
+        hv.lo_trinh as program,
+        IFNULL(DATE_FORMAT(hv.ngay_nhap_hoc, '%Y-%m-%d'), '') as ngayNhapHocRaw,
+        IFNULL(DATE_FORMAT(hv.ngay_nhap_hoc, '%d/%m/%Y'), DATE_FORMAT(hv.created_at, '%d/%m/%Y')) as ngayNhapHoc,
+        hv.nhan_vien_id as nhanVienId,
+        IFNULL(hv.tien_da_dong, 0) as tienDaDong,
+        IFNULL(hv.tong_tien, 0) as tongTien,
+        IFNULL(DATE_FORMAT(hv.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM hoc_vien hv
+      LEFT JOIN tinh_thanh tt ON tt.id = hv.tinh_thanh_id
+      LEFT JOIN quoc_gia qg ON qg.id = hv.quoc_gia_id
+      ORDER BY hv.id DESC
     `);
 
     const students = rows.map(s => {
@@ -234,15 +273,18 @@ router.get('/students', async (req, res) => {
 router.get('/students/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
     const [rows] = await db.query(`
-      SELECT 
+      SELECT
         h.id,
         h.ma_hoc_vien as maHV,
         h.ho_ten as name,
         h.email,
         h.so_dien_thoai as phone,
-        h.que_quan as hometown,
-        h.quoc_gia_den as country,
+        h.tinh_thanh_id as tinhThanhId,
+        tt.ten_tinh as hometown,
+        h.quoc_gia_id as quocGiaId,
+        qg.ten_quoc_gia as country,
         h.trang_thai_ho_so as statusText,
         h.lo_trinh as program,
         IFNULL(DATE_FORMAT(h.ngay_nhap_hoc, '%d/%m/%Y'), '01/09/2026') as ngayNhapHoc,
@@ -253,8 +295,10 @@ router.get('/students/:id', async (req, res) => {
         IFNULL(DATE_FORMAT(h.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
       FROM hoc_vien h
       LEFT JOIN nhan_vien nv ON h.nhan_vien_id = nv.id
-      WHERE h.ma_hoc_vien = ? OR h.id = ?
-    `, [targetId, targetId]);
+      LEFT JOIN tinh_thanh tt ON tt.id = h.tinh_thanh_id
+      LEFT JOIN quoc_gia qg ON qg.id = h.quoc_gia_id
+      WHERE h.ma_hoc_vien = ? ${isNumericId ? 'OR h.id = ?' : ''}
+    `, isNumericId ? [targetId, targetId] : [targetId]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy học viên' });
@@ -288,6 +332,89 @@ router.get('/students/:id', async (req, res) => {
   }
 });
 
+// Bảng điểm: 3 học kỳ x 5 kỹ năng, thang điểm 10
+const GRADE_SKILLS = [
+  { col: 'Từ vựng', key: 'tuVung' },
+  { col: 'Ngữ pháp', key: 'nguPhap' },
+  { col: 'Hán tự', key: 'hanTu' },
+  { col: 'Nghe', key: 'nghe' },
+  { col: 'Hội thoại', key: 'hoiThoai' }
+];
+
+async function resolveHocVienId(targetId) {
+  const isNumericId = /^\d+$/.test(targetId);
+  const [rows] = await db.query(
+    `SELECT id FROM hoc_vien WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
+    isNumericId ? [targetId, targetId] : [targetId]
+  );
+  return rows[0] ? rows[0].id : null;
+}
+
+// GET /api/students/:id/grades
+router.get('/students/:id/grades', async (req, res) => {
+  try {
+    const hocVienId = await resolveHocVienId(req.params.id);
+    if (!hocVienId) return res.status(404).json({ error: 'Không tìm thấy học viên' });
+
+    const [rows] = await db.query(
+      'SELECT thang, ky_nang, diem FROM bang_diem WHERE hoc_vien_id = ?',
+      [hocVienId]
+    );
+
+    const grades = { thang1: {}, thang2: {}, thang3: {}, thang4: {}, thang5: {}, thang6: {} };
+    for (const r of rows) {
+      const skill = GRADE_SKILLS.find(s => s.col === r.ky_nang);
+      if (skill) grades[`thang${r.thang}`][skill.key] = Number(r.diem);
+    }
+    res.json({ grades });
+  } catch (err) {
+    console.error('Lỗi GET /api/students/:id/grades:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// PUT /api/students/:id/grades — cập nhật điểm 1 tháng
+router.put('/students/:id/grades', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const hocVienId = await resolveHocVienId(req.params.id);
+    if (!hocVienId) return res.status(404).json({ error: 'Không tìm thấy học viên' });
+
+    const thang = Number(req.body.thang);
+    if (![1, 2, 3, 4, 5, 6].includes(thang)) {
+      return res.status(400).json({ error: 'Tháng không hợp lệ' });
+    }
+    const grades = req.body.grades || {};
+
+    await conn.beginTransaction();
+    for (const skill of GRADE_SKILLS) {
+      const val = grades[skill.key];
+      if (val === null || val === undefined || val === '') {
+        await conn.query('DELETE FROM bang_diem WHERE hoc_vien_id = ? AND thang = ? AND ky_nang = ?', [hocVienId, thang, skill.col]);
+        continue;
+      }
+      const diem = Number(val);
+      if (Number.isNaN(diem) || diem < 0 || diem > 10) {
+        await conn.rollback();
+        return res.status(400).json({ error: `Điểm ${skill.col} phải từ 0 đến 10` });
+      }
+      await conn.query(
+        `INSERT INTO bang_diem (hoc_vien_id, thang, ky_nang, diem) VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE diem = VALUES(diem)`,
+        [hocVienId, thang, skill.col, diem]
+      );
+    }
+    await conn.commit();
+    res.json({ success: true });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi PUT /api/students/:id/grades:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  } finally {
+    conn.release();
+  }
+});
+
 // POST /api/students (Thêm học viên)
 router.post('/students', async (req, res) => {
   try {
@@ -295,8 +422,8 @@ router.post('/students', async (req, res) => {
       name,
       email,
       phone,
-      hometown,
-      country,
+      tinhThanhId,
+      quocGiaId,
       program,
       statusText,
       ngayNhapHoc,
@@ -312,14 +439,14 @@ router.post('/students', async (req, res) => {
 
     const [result] = await db.query(`
       INSERT INTO hoc_vien
-      (ho_ten, email, so_dien_thoai, que_quan, quoc_gia_den, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      (ma_hoc_vien, ho_ten, email, so_dien_thoai, tinh_thanh_id, quoc_gia_id, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
+      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       name,
       email || null,
       phone || null,
-      hometown || null,
-      country || 'Nhật Bản',
+      tinhThanhId || null,
+      quocGiaId || null,
       statusText || 'Đang học tiếng',
       program || 'Hồ sơ du học',
       ngayNhapHocVal,
@@ -358,8 +485,8 @@ router.put('/students/:id', async (req, res) => {
       name,
       email,
       phone,
-      hometown,
-      country,
+      tinhThanhId,
+      quocGiaId,
       statusText,
       ngayNhapHoc,
       tienDaDong,
@@ -377,8 +504,8 @@ router.put('/students/:id', async (req, res) => {
       name,
       email || null,
       phone || null,
-      hometown || null,
-      country || 'Nhật Bản',
+      tinhThanhId || null,
+      quocGiaId || null,
       statusText || 'Đang học tiếng',
       ngayNhapHoc || null,
       Number(tienDaDong) || 0,
@@ -391,8 +518,8 @@ router.put('/students/:id', async (req, res) => {
         ho_ten = ?,
         email = ?,
         so_dien_thoai = ?,
-        que_quan = ?,
-        quoc_gia_den = ?,
+        tinh_thanh_id = ?,
+        quoc_gia_id = ?,
         trang_thai_ho_so = ?,
         ngay_nhap_hoc = ?,
         tien_da_dong = ?,
@@ -446,23 +573,27 @@ router.delete('/students/:id', async (req, res) => {
 router.get('/employees', async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT 
-        id,
-        ma_nhan_vien as maNV,
-        ho_ten as name,
-        so_dien_thoai as phone,
-        email,
-        IFNULL(DATE_FORMAT(ngay_sinh, '%Y-%m-%d'), '') as ngaySinhRaw,
-        IFNULL(DATE_FORMAT(ngay_sinh, '%d/%m/%Y'), 'Chưa cập nhật') as ngaySinh,
-        bo_phan as department,
-        chuc_danh as role,
-        IFNULL(DATE_FORMAT(ngay_vao_lam, '%Y-%m-%d'), '') as startDateRaw,
-        IFNULL(DATE_FORMAT(ngay_vao_lam, '%d/%m/%Y'), '01/01/2025') as startDate,
-        hinh_thuc as workType,
-        trang_thai as statusText,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
-      FROM nhan_vien
-      ORDER BY id ASC
+      SELECT
+        nv.id,
+        nv.ma_nhan_vien as maNV,
+        nv.ho_ten as name,
+        nv.so_dien_thoai as phone,
+        nv.email,
+        IFNULL(DATE_FORMAT(nv.ngay_sinh, '%Y-%m-%d'), '') as ngaySinhRaw,
+        IFNULL(DATE_FORMAT(nv.ngay_sinh, '%d/%m/%Y'), 'Chưa cập nhật') as ngaySinh,
+        nv.bo_phan_id as departmentId,
+        bp.ten_bo_phan as department,
+        nv.chuc_danh_id as roleId,
+        cd.ten_chuc_danh as role,
+        IFNULL(DATE_FORMAT(nv.ngay_vao_lam, '%Y-%m-%d'), '') as startDateRaw,
+        IFNULL(DATE_FORMAT(nv.ngay_vao_lam, '%d/%m/%Y'), '01/01/2025') as startDate,
+        nv.hinh_thuc as workType,
+        nv.trang_thai as statusText,
+        IFNULL(DATE_FORMAT(nv.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM nhan_vien nv
+      LEFT JOIN bo_phan bp ON bp.id = nv.bo_phan_id
+      LEFT JOIN chuc_danh cd ON cd.id = nv.chuc_danh_id
+      ORDER BY nv.id ASC
     `);
 
     const employees = rows.map(e => ({
@@ -486,20 +617,24 @@ router.get('/employees/:id', async (req, res) => {
     const isNumericId = /^\d+$/.test(targetId);
     const [rows] = await db.query(`
       SELECT
-        id,
-        ma_nhan_vien as maNV,
-        ho_ten as name,
-        so_dien_thoai as phone,
-        email,
-        IFNULL(DATE_FORMAT(ngay_sinh, '%d/%m/%Y'), '15/08/1995') as dob,
-        bo_phan as department,
-        chuc_danh as role,
-        IFNULL(DATE_FORMAT(ngay_vao_lam, '%d/%m/%Y'), '01/01/2025') as startDate,
-        hinh_thuc as workType,
-        trang_thai as statusText,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
-      FROM nhan_vien
-      WHERE ma_nhan_vien = ? ${isNumericId ? 'OR id = ?' : ''}
+        nv.id,
+        nv.ma_nhan_vien as maNV,
+        nv.ho_ten as name,
+        nv.so_dien_thoai as phone,
+        nv.email,
+        IFNULL(DATE_FORMAT(nv.ngay_sinh, '%d/%m/%Y'), '15/08/1995') as dob,
+        nv.bo_phan_id as departmentId,
+        bp.ten_bo_phan as department,
+        nv.chuc_danh_id as roleId,
+        cd.ten_chuc_danh as role,
+        IFNULL(DATE_FORMAT(nv.ngay_vao_lam, '%d/%m/%Y'), '01/01/2025') as startDate,
+        nv.hinh_thuc as workType,
+        nv.trang_thai as statusText,
+        IFNULL(DATE_FORMAT(nv.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM nhan_vien nv
+      LEFT JOIN bo_phan bp ON bp.id = nv.bo_phan_id
+      LEFT JOIN chuc_danh cd ON cd.id = nv.chuc_danh_id
+      WHERE nv.ma_nhan_vien = ? ${isNumericId ? 'OR nv.id = ?' : ''}
     `, isNumericId ? [targetId, targetId] : [targetId]);
 
     if (rows.length === 0) {
@@ -509,14 +644,15 @@ router.get('/employees/:id', async (req, res) => {
 
     // Lấy danh sách học viên do nhân viên này đảm nhận
     const [assignedStudents] = await db.query(`
-      SELECT 
-        id,
-        ma_hoc_vien as maHV,
-        ho_ten as name,
-        quoc_gia_den as country,
-        trang_thai_ho_so as statusText,
-        IFNULL(DATE_FORMAT(created_at, '%d/%m/%Y'), '21/08/2026') as createdAt
-      FROM hoc_vien
+      SELECT
+        hv.id,
+        hv.ma_hoc_vien as maHV,
+        hv.ho_ten as name,
+        qg.ten_quoc_gia as country,
+        hv.trang_thai_ho_so as statusText,
+        IFNULL(DATE_FORMAT(hv.created_at, '%d/%m/%Y'), '21/08/2026') as createdAt
+      FROM hoc_vien hv
+      LEFT JOIN quoc_gia qg ON qg.id = hv.quoc_gia_id
       LIMIT 10
     `);
 
@@ -549,8 +685,8 @@ router.post('/employees', async (req, res) => {
       name,
       email,
       phone,
-      department,
-      role,
+      departmentId,
+      roleId,
       workType,
       statusText,
       startDate
@@ -564,15 +700,15 @@ router.post('/employees', async (req, res) => {
 
     const [result] = await db.query(`
       INSERT INTO nhan_vien
-      (ho_ten, email, so_dien_thoai, bo_phan, chuc_danh, hinh_thuc, trang_thai, ngay_vao_lam, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      (ma_nhan_vien, ho_ten, email, so_dien_thoai, bo_phan_id, chuc_danh_id, hinh_thuc, trang_thai, ngay_vao_lam, created_at)
+      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       name,
       email || null,
       phone || null,
-      department || 'Kinh doanh',
-      role || 'Chuyên viên tư vấn',
-      workType || 'Chính thức',
+      departmentId || null,
+      roleId || null,
+      workType || 'Full-time',
       statusText || 'Đang làm việc',
       startDateVal
     ]);
@@ -601,8 +737,8 @@ router.put('/employees/:id', async (req, res) => {
       name,
       email,
       phone,
-      department,
-      role,
+      departmentId,
+      roleId,
       workType,
       statusText,
       startDate
@@ -612,9 +748,9 @@ router.put('/employees/:id', async (req, res) => {
       name,
       email || null,
       phone || null,
-      department || 'Kinh doanh',
-      role || 'Chuyên viên tư vấn',
-      workType || 'Chính thức',
+      departmentId || null,
+      roleId || null,
+      workType || 'Full-time',
       statusText || 'Đang làm việc',
       startDate || null
     ];
@@ -625,8 +761,8 @@ router.put('/employees/:id', async (req, res) => {
         ho_ten = ?,
         email = ?,
         so_dien_thoai = ?,
-        bo_phan = ?,
-        chuc_danh = ?,
+        bo_phan_id = ?,
+        chuc_danh_id = ?,
         hinh_thuc = ?,
         trang_thai = ?,
         ngay_vao_lam = ?
@@ -705,10 +841,11 @@ router.get('/revenue', async (req, res) => {
     const maxChartVal = Math.max(1, ...monthlyChart.map(c => c.total));
 
     const [countryRows] = await db.query(`
-      SELECT COALESCE(hv.quoc_gia_den, 'Khác') as country, COALESCE(SUM(tt.so_tien),0) as total
+      SELECT COALESCE(qg.ten_quoc_gia, 'Khác') as country, COALESCE(SUM(tt.so_tien),0) as total
       FROM thanh_toan tt
       JOIN hoc_vien hv ON hv.id = tt.hoc_vien_id
-      GROUP BY COALESCE(hv.quoc_gia_den, 'Khác')
+      LEFT JOIN quoc_gia qg ON qg.id = hv.quoc_gia_id
+      GROUP BY COALESCE(qg.ten_quoc_gia, 'Khác')
       ORDER BY total DESC
     `);
     const maxCountry = Math.max(1, ...countryRows.map(r => Number(r.total)));
@@ -773,7 +910,7 @@ router.get('/schools', async (req, res) => {
         d.id,
         d.ma_du_an as maDuAn,
         d.ten_du_an as name,
-        d.quoc_gia as country,
+        qg.ten_quoc_gia as country,
         IFNULL(DATE_FORMAT(d.ngay_bat_dau, '%d/%m/%Y'), '01/01/2026') as startDate,
         IFNULL(DATE_FORMAT(d.ngay_ket_thuc, '%d/%m/%Y'), '31/12/2026') as endDate,
         d.chi_tieu_so_luong as quota,
@@ -784,6 +921,7 @@ router.get('/schools', async (req, res) => {
         IFNULL(DATE_FORMAT(d.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
       FROM du_an d
       LEFT JOIN nhan_vien nv ON nv.id = d.nguoi_quan_ly_id
+      LEFT JOIN quoc_gia qg ON qg.id = d.quoc_gia_id
       ORDER BY d.id DESC
     `);
 
@@ -813,13 +951,18 @@ router.get('/customers', async (req, res) => {
         nv.ho_ten as staffName,
         kh.ngay_dang_ky as ngayDangKyRaw,
         IFNULL(DATE_FORMAT(kh.ngay_dang_ky, '%d/%m/%Y'), DATE_FORMAT(kh.created_at, '%d/%m/%Y')) as ngayDangKy,
-        kh.quoc_gia_quan_tam as country,
+        kh.quoc_gia_id as quocGiaId,
+        qg.ten_quoc_gia as country,
+        kh.tinh_thanh_id as tinhThanhId,
+        tt.ten_tinh as province,
         kh.trang_thai as statusText,
         kh.ghi_chu as note,
         kh.created_at as createdAtRaw,
         IFNULL(DATE_FORMAT(kh.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
       FROM khach_hang kh
       LEFT JOIN nhan_vien nv ON nv.id = kh.nhan_vien_id
+      LEFT JOIN quoc_gia qg ON qg.id = kh.quoc_gia_id
+      LEFT JOIN tinh_thanh tt ON tt.id = kh.tinh_thanh_id
       ORDER BY kh.id DESC
     `);
 
@@ -833,7 +976,10 @@ router.get('/customers', async (req, res) => {
       staffName: r.staffName || 'Chưa phân công',
       ngayDangKyRaw: r.ngayDangKyRaw ? new Date(r.ngayDangKyRaw).toISOString().slice(0, 10) : '',
       ngayDangKy: r.ngayDangKy,
+      quocGiaId: r.quocGiaId,
       country: r.country || 'Chưa xác định',
+      tinhThanhId: r.tinhThanhId,
+      province: r.province || 'Chưa xác định',
       statusText: r.statusText || 'Mới tiếp nhận',
       note: r.note,
       createdAt: r.createdAt,
@@ -850,21 +996,22 @@ router.get('/customers', async (req, res) => {
 // POST /api/customers (Thêm khách hàng)
 router.post('/customers', async (req, res) => {
   try {
-    const { name, phone, nhanVienId, ngayDangKy, country, statusText, note } = req.body;
+    const { name, phone, nhanVienId, ngayDangKy, quocGiaId, tinhThanhId, statusText, note } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Tên khách hàng là bắt buộc' });
     }
 
     const [result] = await db.query(`
-      INSERT INTO khach_hang (ma_kh, ho_ten, so_dien_thoai, nhan_vien_id, ngay_dang_ky, quoc_gia_quan_tam, trang_thai, ghi_chu, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      INSERT INTO khach_hang (ma_kh, ho_ten, so_dien_thoai, nhan_vien_id, ngay_dang_ky, quoc_gia_id, tinh_thanh_id, trang_thai, ghi_chu, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       'TEMP',
       name,
       phone || null,
       nhanVienId || null,
       ngayDangKy || null,
-      country || null,
+      quocGiaId || null,
+      tinhThanhId || null,
       statusText || 'Mới tiếp nhận',
       note || null
     ]);
@@ -889,14 +1036,15 @@ router.put('/customers/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
     const isNumericId = /^\d+$/.test(targetId);
-    const { name, phone, nhanVienId, ngayDangKy, country, statusText, note } = req.body;
+    const { name, phone, nhanVienId, ngayDangKy, quocGiaId, tinhThanhId, statusText, note } = req.body;
 
     const updateParams = [
       name,
       phone || null,
       nhanVienId || null,
       ngayDangKy || null,
-      country || null,
+      quocGiaId || null,
+      tinhThanhId || null,
       statusText || 'Mới tiếp nhận',
       note || null
     ];
@@ -908,7 +1056,8 @@ router.put('/customers/:id', async (req, res) => {
         so_dien_thoai = ?,
         nhan_vien_id = ?,
         ngay_dang_ky = ?,
-        quoc_gia_quan_tam = ?,
+        quoc_gia_id = ?,
+        tinh_thanh_id = ?,
         trang_thai = ?,
         ghi_chu = ?
       WHERE ma_kh = ? ${isNumericId ? 'OR id = ?' : ''}
@@ -958,16 +1107,26 @@ router.post('/change-password', async (req, res) => {
     if (newPassword.length < 6) {
       return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
     }
-    const table = role === 'admin' ? 'admin' : 'nhan_vien';
-    const [rows] = await db.query(`SELECT password_hash FROM ${table} WHERE id = ?`, [id]);
-    const account = rows[0];
-    if (!account) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+    let accountTable, accountId, passwordHash;
+    if (role === 'admin') {
+      const [rows] = await db.query('SELECT password_hash FROM tai_khoan_admin WHERE id = ?', [id]);
+      if (!rows[0]) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+      accountTable = 'tai_khoan_admin';
+      accountId = id;
+      passwordHash = rows[0].password_hash;
+    } else {
+      const [rows] = await db.query('SELECT tai_khoan_nhan_vien_id, tk.password_hash FROM nhan_vien nv JOIN tai_khoan_nhan_vien tk ON tk.id = nv.tai_khoan_nhan_vien_id WHERE nv.id = ?', [id]);
+      if (!rows[0]) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+      accountTable = 'tai_khoan_nhan_vien';
+      accountId = rows[0].tai_khoan_nhan_vien_id;
+      passwordHash = rows[0].password_hash;
+    }
 
-    const match = await bcrypt.compare(currentPassword, account.password_hash || '');
+    const match = await verifyPassword(currentPassword, passwordHash);
     if (!match) return res.status(401).json({ error: 'Mật khẩu hiện tại không đúng' });
 
     const newHash = await bcrypt.hash(newPassword, 10);
-    await db.query(`UPDATE ${table} SET password_hash = ? WHERE id = ?`, [newHash, id]);
+    await db.query(`UPDATE ${accountTable} SET password_hash = ? WHERE id = ?`, [newHash, accountId]);
     res.json({ success: true });
   } catch (err) {
     console.error('Lỗi đổi mật khẩu:', err);
@@ -980,7 +1139,7 @@ router.post('/upload-avatar', avatarUpload.single('avatar'), async (req, res) =>
   try {
     const { role, id } = req.user;
     if (!req.file) return res.status(400).json({ error: 'Vui lòng chọn một ảnh' });
-    const table = role === 'admin' ? 'admin' : 'nhan_vien';
+    const table = role === 'admin' ? 'tai_khoan_admin' : 'nhan_vien';
     const avatarUrl = '/uploads/avatars/' + req.file.filename;
     await db.query(`UPDATE ${table} SET avatar_url = ? WHERE id = ?`, [avatarUrl, id]);
     res.json({ success: true, avatarUrl });
@@ -1120,7 +1279,7 @@ router.get('/collaborators', async (req, res) => {
     const [rows] = await db.query(`
       SELECT
         id, ma_ctv as maCTV, ho_ten as name, so_dien_thoai as phone,
-        nguoi_gioi_thieu as referrer, trang_thai as statusText, ghi_chu as note,
+        nguoi_gioi_thieu as referrer, trang_thai as statusText,
         DATE_FORMAT(ngay_dang_ky, '%Y-%m-%d') as registeredAtRaw,
         IFNULL(DATE_FORMAT(ngay_dang_ky, '%d/%m/%Y'), DATE_FORMAT(created_at, '%d/%m/%Y')) as registeredAt,
         created_at as createdAtRaw
@@ -1137,14 +1296,14 @@ router.get('/collaborators', async (req, res) => {
 // POST /api/collaborators (Thêm cộng tác viên)
 router.post('/collaborators', async (req, res) => {
   try {
-    const { name, phone, referrer, statusText, registeredAt, note } = req.body;
+    const { name, phone, referrer, statusText, registeredAt } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Tên cộng tác viên là bắt buộc' });
     }
     const [result] = await db.query(`
-      INSERT INTO cong_tac_vien (ma_ctv, ho_ten, so_dien_thoai, nguoi_gioi_thieu, trang_thai, ngay_dang_ky, ghi_chu)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, ['TEMP', name, phone || null, referrer || null, statusText || 'Chờ duyệt', registeredAt || null, note || null]);
+      INSERT INTO cong_tac_vien (ma_ctv, ho_ten, so_dien_thoai, nguoi_gioi_thieu, trang_thai, ngay_dang_ky)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, ['TEMP', name, phone || null, referrer || null, statusText || 'Hoạt động', registeredAt || null]);
 
     const ma_ctv = 'CTV-' + String(result.insertId).padStart(4, '0');
     await db.query('UPDATE cong_tac_vien SET ma_ctv = ? WHERE id = ?', [ma_ctv, result.insertId]);
@@ -1161,14 +1320,14 @@ router.put('/collaborators/:id', async (req, res) => {
   try {
     const targetId = req.params.id;
     const isNumericId = /^\d+$/.test(targetId);
-    const { name, phone, referrer, statusText, registeredAt, note } = req.body;
+    const { name, phone, referrer, statusText, registeredAt } = req.body;
     const [result] = await db.query(`
       UPDATE cong_tac_vien
-      SET ho_ten = ?, so_dien_thoai = ?, nguoi_gioi_thieu = ?, trang_thai = ?, ngay_dang_ky = ?, ghi_chu = ?
+      SET ho_ten = ?, so_dien_thoai = ?, nguoi_gioi_thieu = ?, trang_thai = ?, ngay_dang_ky = ?
       WHERE ma_ctv = ? ${isNumericId ? 'OR id = ?' : ''}
     `, isNumericId
-      ? [name, phone || null, referrer || null, statusText || 'Chờ duyệt', registeredAt || null, note || null, targetId, targetId]
-      : [name, phone || null, referrer || null, statusText || 'Chờ duyệt', registeredAt || null, note || null, targetId]);
+      ? [name, phone || null, referrer || null, statusText || 'Hoạt động', registeredAt || null, targetId, targetId]
+      : [name, phone || null, referrer || null, statusText || 'Hoạt động', registeredAt || null, targetId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Không tìm thấy cộng tác viên để cập nhật' });
@@ -1199,198 +1358,329 @@ router.delete('/collaborators/:id', async (req, res) => {
   }
 });
 
-// ---- Test năng lực nhân viên (competency exams) ----
+// ---- Test năng lực nhân viên (kết quả nhập thủ công — bảng test_nang_luc) ----
 
-function mapQuestionRow(q) {
-  return {
-    id: q.id,
-    order: q.thu_tu,
-    content: q.noi_dung,
-    optionA: q.dap_an_a,
-    optionB: q.dap_an_b,
-    optionC: q.dap_an_c,
-    optionD: q.dap_an_d,
-    correctAnswer: q.dap_an_dung
-  };
+function ratingStampTier(ketQua) {
+  return ketQua === 'Đạt' ? 'pass' : 'fail';
 }
-
-// GET /api/competency-exams
-router.get('/competency-exams', async (req, res) => {
-  try {
-    const { department } = req.query;
-    const params = [];
-    let where = '';
-    if (department) { where = 'WHERE d.phong_ban = ?'; params.push(department); }
-    const [rows] = await db.query(`
-      SELECT
-        d.id, d.ten_de as name, d.phong_ban as department, d.trang_thai as status,
-        DATE_FORMAT(d.created_at, '%d/%m/%Y') as createdAt,
-        (SELECT COUNT(*) FROM cau_hoi_test c WHERE c.de_thi_id = d.id) as questionCount,
-        (SELECT COUNT(*) FROM bai_lam_test b WHERE b.de_thi_id = d.id) as attemptCount
-      FROM de_thi d
-      ${where}
-      ORDER BY d.id DESC
-    `, params);
-    res.json({ exams: rows, departments: DEPARTMENTS });
-  } catch (err) {
-    console.error('Lỗi lấy danh sách đề thi:', err);
-    res.status(500).json({ error: 'Database query failed' });
-  }
-});
-
-// GET /api/competency-exams/:id
-router.get('/competency-exams/:id', async (req, res) => {
-  try {
-    const [[exam]] = await db.query(`
-      SELECT id, ten_de as name, phong_ban as department, trang_thai as status,
-        DATE_FORMAT(created_at, '%d/%m/%Y') as createdAt
-      FROM de_thi WHERE id = ?
-    `, [req.params.id]);
-    if (!exam) return res.status(404).json({ error: 'Không tìm thấy đề thi' });
-    const [questions] = await db.query('SELECT * FROM cau_hoi_test WHERE de_thi_id = ? ORDER BY thu_tu ASC, id ASC', [req.params.id]);
-    res.json({ exam: { ...exam, questions: questions.map(mapQuestionRow) } });
-  } catch (err) {
-    console.error('Lỗi lấy chi tiết đề thi:', err);
-    res.status(500).json({ error: 'Database query failed' });
-  }
-});
-
-function validateQuestions(questions) {
-  if (!Array.isArray(questions) || questions.length === 0) return 'Đề thi cần ít nhất 1 câu hỏi';
-  for (const q of questions) {
-    if (!q.content || !q.optionA || !q.optionB || !q.optionC || !q.optionD) return 'Vui lòng nhập đầy đủ nội dung và 4 đáp án cho mỗi câu hỏi';
-    if (!['A', 'B', 'C', 'D'].includes(q.correctAnswer)) return 'Vui lòng chọn đáp án đúng cho mỗi câu hỏi';
-  }
-  return null;
-}
-
-// POST /api/competency-exams
-router.post('/competency-exams', async (req, res) => {
-  const { name, department, questions } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Tên đề thi là bắt buộc' });
-  if (!DEPARTMENTS.includes(department)) return res.status(400).json({ error: 'Phòng ban không hợp lệ' });
-  const qError = validateQuestions(questions);
-  if (qError) return res.status(400).json({ error: qError });
-
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [result] = await conn.query(
-      'INSERT INTO de_thi (ten_de, phong_ban, trang_thai, created_by) VALUES (?, ?, ?, ?)',
-      [name, department, 'active', req.user?.id || null]
-    );
-    const examId = result.insertId;
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      await conn.query(
-        'INSERT INTO cau_hoi_test (de_thi_id, thu_tu, noi_dung, dap_an_a, dap_an_b, dap_an_c, dap_an_d, dap_an_dung) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [examId, i, q.content, q.optionA, q.optionB, q.optionC, q.optionD, q.correctAnswer]
-      );
-    }
-    await conn.commit();
-    res.status(201).json({ success: true, message: `Đã tạo đề thi "${name}"!`, examId });
-  } catch (err) {
-    await conn.rollback();
-    console.error('Lỗi tạo đề thi:', err);
-    res.status(500).json({ error: 'Không thể tạo đề thi: ' + err.message });
-  } finally {
-    conn.release();
-  }
-});
-
-// PUT /api/competency-exams/:id
-router.put('/competency-exams/:id', async (req, res) => {
-  const { name, department, status, questions } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Tên đề thi là bắt buộc' });
-  if (!DEPARTMENTS.includes(department)) return res.status(400).json({ error: 'Phòng ban không hợp lệ' });
-  const qError = validateQuestions(questions);
-  if (qError) return res.status(400).json({ error: qError });
-
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [result] = await conn.query(
-      'UPDATE de_thi SET ten_de = ?, phong_ban = ?, trang_thai = ? WHERE id = ?',
-      [name, department, status === 'inactive' ? 'inactive' : 'active', req.params.id]
-    );
-    if (result.affectedRows === 0) {
-      await conn.rollback();
-      return res.status(404).json({ error: 'Không tìm thấy đề thi để cập nhật' });
-    }
-    await conn.query('DELETE FROM cau_hoi_test WHERE de_thi_id = ?', [req.params.id]);
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      await conn.query(
-        'INSERT INTO cau_hoi_test (de_thi_id, thu_tu, noi_dung, dap_an_a, dap_an_b, dap_an_c, dap_an_d, dap_an_dung) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [req.params.id, i, q.content, q.optionA, q.optionB, q.optionC, q.optionD, q.correctAnswer]
-      );
-    }
-    await conn.commit();
-    res.json({ success: true, message: `Đã cập nhật đề thi "${name}"!` });
-  } catch (err) {
-    await conn.rollback();
-    console.error('Lỗi sửa đề thi:', err);
-    res.status(500).json({ error: 'Không thể cập nhật đề thi: ' + err.message });
-  } finally {
-    conn.release();
-  }
-});
-
-// DELETE /api/competency-exams/:id
-router.delete('/competency-exams/:id', async (req, res) => {
-  try {
-    const [result] = await db.query('DELETE FROM de_thi WHERE id = ?', [req.params.id]);
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy đề thi để xóa' });
-    res.json({ success: true, message: 'Đã xóa đề thi khỏi CSDL' });
-  } catch (err) {
-    console.error('Lỗi xóa đề thi:', err);
-    res.status(500).json({ error: 'Không thể xóa đề thi: ' + err.message });
-  }
-});
 
 // GET /api/competency-results
 router.get('/competency-results', async (req, res) => {
   try {
     const { department, search } = req.query;
-    const params = [];
     const clauses = [];
-    if (department) { clauses.push('nv.bo_phan = ?'); params.push(department); }
+    const params = [];
+    if (department) { clauses.push('bp.ten_bo_phan = ?'); params.push(department); }
     if (search && search.trim()) { clauses.push('nv.ho_ten LIKE ?'); params.push(`%${search.trim()}%`); }
     const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
 
     const [rows] = await db.query(`
       SELECT
-        b.id, b.so_cau_dung as correct, b.tong_cau as total,
-        DATE_FORMAT(b.ngay_lam, '%d/%m/%Y') as takenAt,
-        nv.id as employeeId, nv.ho_ten as employeeName, nv.bo_phan as department,
-        d.ten_de as examName
-      FROM bai_lam_test b
-      JOIN nhan_vien nv ON nv.id = b.nhan_vien_id
-      JOIN de_thi d ON d.id = b.de_thi_id
+        t.id, t.ten_bai_test as examName,
+        t.diem_so as score, t.ket_qua as result, t.danh_gia_nhan_xet as note,
+        DATE_FORMAT(t.ngay_lam_test, '%Y-%m-%d') as takenAtRaw,
+        DATE_FORMAT(t.ngay_lam_test, '%d/%m/%Y') as takenAt,
+        nv.id as employeeId, nv.ma_nhan_vien as employeeCode, nv.ho_ten as employeeName,
+        bp.ten_bo_phan as department
+      FROM test_nang_luc t
+      JOIN nhan_vien nv ON nv.id = t.nhan_vien_id
+      LEFT JOIN bo_phan bp ON bp.id = nv.bo_phan_id
       ${where}
-      ORDER BY b.id DESC
+      ORDER BY t.id DESC
     `, params);
 
     res.json({
-      results: rows.map(r => {
-        const { label, tier } = computeXepLoai(r.correct, r.total);
-        return {
-          id: r.id,
-          employeeName: r.employeeName,
-          department: r.department,
-          examName: r.examName,
-          correct: r.correct,
-          total: r.total,
-          takenAt: r.takenAt,
-          rating: label,
-          ratingTier: tier
-        };
-      }),
-      departments: DEPARTMENTS
+      results: rows.map(r => ({
+        id: r.id,
+        employeeId: r.employeeId,
+        employeeCode: r.employeeCode,
+        employeeName: r.employeeName,
+        department: r.department || 'Chưa xác định',
+        examName: r.examName,
+        score: Number(r.score),
+        result: r.result,
+        ratingTier: ratingStampTier(r.result),
+        note: r.note,
+        takenAtRaw: r.takenAtRaw,
+        takenAt: r.takenAt
+      }))
     });
   } catch (err) {
     console.error('Lỗi lấy kết quả test năng lực:', err);
     res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/competency-results
+router.post('/competency-results', async (req, res) => {
+  try {
+    const { employeeId, examName, score, result, takenAt, note } = req.body;
+    if (!employeeId) return res.status(400).json({ error: 'Vui lòng chọn nhân viên' });
+    if (!examName || !examName.trim()) return res.status(400).json({ error: 'Tên bài test là bắt buộc' });
+    if (!['Đạt', 'Không đạt'].includes(result)) return res.status(400).json({ error: 'Kết quả không hợp lệ' });
+
+    const [insertResult] = await db.query(
+      'INSERT INTO test_nang_luc (nhan_vien_id, ten_bai_test, ngay_lam_test, diem_so, ket_qua, danh_gia_nhan_xet) VALUES (?, ?, ?, ?, ?, ?)',
+      [employeeId, examName, takenAt || new Date().toISOString().slice(0, 10), Number(score) || 0, result, note || null]
+    );
+    res.status(201).json({ success: true, message: 'Đã thêm kết quả test năng lực!', insertedId: insertResult.insertId });
+  } catch (err) {
+    console.error('Lỗi thêm kết quả test năng lực:', err);
+    res.status(500).json({ error: 'Không thể thêm kết quả: ' + err.message });
+  }
+});
+
+// PUT /api/competency-results/:id
+router.put('/competency-results/:id', async (req, res) => {
+  try {
+    const { employeeId, examName, score, result, takenAt, note } = req.body;
+    if (!employeeId) return res.status(400).json({ error: 'Vui lòng chọn nhân viên' });
+    if (!examName || !examName.trim()) return res.status(400).json({ error: 'Tên bài test là bắt buộc' });
+    if (!['Đạt', 'Không đạt'].includes(result)) return res.status(400).json({ error: 'Kết quả không hợp lệ' });
+
+    const [updateResult] = await db.query(
+      'UPDATE test_nang_luc SET nhan_vien_id = ?, ten_bai_test = ?, ngay_lam_test = ?, diem_so = ?, ket_qua = ?, danh_gia_nhan_xet = ? WHERE id = ?',
+      [employeeId, examName, takenAt || new Date().toISOString().slice(0, 10), Number(score) || 0, result, note || null, req.params.id]
+    );
+    if (updateResult.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy kết quả để cập nhật' });
+    res.json({ success: true, message: 'Đã cập nhật kết quả test năng lực!' });
+  } catch (err) {
+    console.error('Lỗi sửa kết quả test năng lực:', err);
+    res.status(500).json({ error: 'Không thể cập nhật kết quả: ' + err.message });
+  }
+});
+
+// DELETE /api/competency-results/:id
+router.delete('/competency-results/:id', async (req, res) => {
+  try {
+    const [result] = await db.query('DELETE FROM test_nang_luc WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy kết quả để xóa' });
+    res.json({ success: true, message: 'Đã xóa kết quả khỏi CSDL' });
+  } catch (err) {
+    console.error('Lỗi xóa kết quả test năng lực:', err);
+    res.status(500).json({ error: 'Không thể xóa kết quả: ' + err.message });
+  }
+});
+
+// ---- Company logo (shared across admin/staff/student portals) ----
+router.get('/settings/logo', (req, res) => {
+  const file = currentLogoFile();
+  res.json({ logoUrl: file ? '/uploads/company/' + file : null });
+});
+
+router.post('/settings/logo', logoUpload.single('logo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Vui lòng chọn một ảnh' });
+  const existing = fs.readdirSync(logoUploadDir).filter(f => f.startsWith('logo.') && f !== req.file.filename);
+  for (const f of existing) fs.unlinkSync(path.join(logoUploadDir, f));
+  res.json({ success: true, logoUrl: '/uploads/company/' + req.file.filename });
+});
+
+router.delete('/settings/logo', (req, res) => {
+  const existing = fs.readdirSync(logoUploadDir).filter(f => f.startsWith('logo.'));
+  for (const f of existing) fs.unlinkSync(path.join(logoUploadDir, f));
+  res.json({ success: true });
+});
+
+// ---- Accounts (tạo tài khoản đăng nhập + reset mật khẩu + khóa/mở khóa) ----
+const ACCOUNT_TABLES = { admin: 'tai_khoan_admin', staff: 'tai_khoan_nhan_vien', student: 'tai_khoan_hoc_vien' };
+
+function formatDateTime(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function getInitials(name) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '??';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+router.get('/accounts', async (req, res) => {
+  try {
+    const [admins] = await db.query(`
+      SELECT ta.id as accountId, ta.username, ta.trang_thai, ta.last_login,
+        ta.ho_ten as name, ta.email, ta.avatar_url,
+        CASE ta.vai_tro WHEN 'SUPER_ADMIN' THEN 'Quản trị viên cấp cao' WHEN 'MANAGER' THEN 'Quản lý' ELSE 'Quản trị viên' END as role
+      FROM tai_khoan_admin ta
+    `);
+    const [staff] = await db.query(`
+      SELECT tk.id as accountId, tk.username, tk.trang_thai, tk.last_login,
+        nv.ho_ten as name, nv.email, nv.avatar_url, IFNULL(cd.ten_chuc_danh, 'Nhân viên') as role
+      FROM tai_khoan_nhan_vien tk
+      JOIN nhan_vien nv ON nv.tai_khoan_nhan_vien_id = tk.id
+      LEFT JOIN chuc_danh cd ON cd.id = nv.chuc_danh_id
+    `);
+    const [students] = await db.query(`
+      SELECT tk.id as accountId, tk.username, tk.trang_thai, tk.last_login,
+        hv.ho_ten as name, hv.email, hv.avatar_url, hv.ma_hoc_vien
+      FROM tai_khoan_hoc_vien tk
+      JOIN hoc_vien hv ON hv.tai_khoan_hoc_vien_id = tk.id
+    `);
+
+    const mapRow = (r, accountType) => ({
+      accountId: r.accountId,
+      accountType,
+      type: accountType === 'student' ? 'student' : 'staff',
+      username: r.username,
+      name: r.name,
+      email: r.email || null,
+      role: accountType === 'student' ? ('Mã ' + (r.ma_hoc_vien || '')) : r.role,
+      status: r.trang_thai === 'Khóa' ? 'locked' : 'active',
+      statusText: r.trang_thai === 'Khóa' ? 'Đã khóa' : 'Đang hoạt động',
+      lastLogin: formatDateTime(r.last_login) || 'Chưa đăng nhập',
+      avatarUrl: r.avatar_url || null,
+      avatar: getInitials(r.name)
+    });
+
+    const accounts = [
+      ...admins.map(r => mapRow(r, 'admin')),
+      ...staff.map(r => mapRow(r, 'staff')),
+      ...students.map(r => mapRow(r, 'student'))
+    ];
+
+    res.json({ accounts });
+  } catch (err) {
+    console.error('Lỗi GET /api/accounts:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// Nhân viên / học viên chưa có tài khoản đăng nhập — dùng cho dropdown "Tạo tài khoản"
+router.get('/accounts/available-employees', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id, ma_nhan_vien, ho_ten, email FROM nhan_vien WHERE tai_khoan_nhan_vien_id IS NULL ORDER BY ho_ten'
+    );
+    res.json({ employees: rows.map(r => ({ id: r.id, maNhanVien: r.ma_nhan_vien, name: r.ho_ten, email: r.email })) });
+  } catch (err) {
+    console.error('Lỗi GET /api/accounts/available-employees:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+router.get('/accounts/available-students', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id, ma_hoc_vien, ho_ten, email FROM hoc_vien WHERE tai_khoan_hoc_vien_id IS NULL ORDER BY ho_ten'
+    );
+    res.json({ students: rows.map(r => ({ id: r.id, maHocVien: r.ma_hoc_vien, name: r.ho_ten, email: r.email })) });
+  } catch (err) {
+    console.error('Lỗi GET /api/accounts/available-students:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/accounts/staff — cấp tài khoản đăng nhập cho 1 nhân viên đã tồn tại
+router.post('/accounts/staff', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { nhanVienId, email, username, password } = req.body;
+    if (!nhanVienId || !username || !password) {
+      conn.release();
+      return res.status(400).json({ error: 'Thiếu nhân viên, tên đăng nhập hoặc mật khẩu' });
+    }
+
+    const [existing] = await conn.query('SELECT tai_khoan_nhan_vien_id FROM nhan_vien WHERE id = ?', [nhanVienId]);
+    if (!existing[0]) { conn.release(); return res.status(404).json({ error: 'Không tìm thấy nhân viên' }); }
+    if (existing[0].tai_khoan_nhan_vien_id) { conn.release(); return res.status(409).json({ error: 'Nhân viên này đã có tài khoản' }); }
+
+    const [dup] = await conn.query('SELECT id FROM tai_khoan_nhan_vien WHERE username = ?', [username]);
+    if (dup[0]) { conn.release(); return res.status(409).json({ error: 'Tên đăng nhập đã tồn tại' }); }
+
+    const hash = await bcrypt.hash(password, 10);
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'INSERT INTO tai_khoan_nhan_vien (username, password_hash, trang_thai) VALUES (?, ?, ?)',
+      [username, hash, 'Hoạt động']
+    );
+    if (email) {
+      await conn.query('UPDATE nhan_vien SET tai_khoan_nhan_vien_id = ?, email = ? WHERE id = ?', [result.insertId, email, nhanVienId]);
+    } else {
+      await conn.query('UPDATE nhan_vien SET tai_khoan_nhan_vien_id = ? WHERE id = ?', [result.insertId, nhanVienId]);
+    }
+    await conn.commit();
+    res.status(201).json({ success: true, message: 'Đã tạo tài khoản nhân viên' });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi tạo tài khoản nhân viên:', err);
+    res.status(500).json({ error: 'Không thể tạo tài khoản: ' + err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+// POST /api/accounts/student — cấp tài khoản đăng nhập cho 1 học viên đã tồn tại
+router.post('/accounts/student', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { hocVienId, email, username, password } = req.body;
+    if (!hocVienId || !username || !password) {
+      conn.release();
+      return res.status(400).json({ error: 'Thiếu học viên, tên đăng nhập hoặc mật khẩu' });
+    }
+
+    const [existing] = await conn.query('SELECT tai_khoan_hoc_vien_id FROM hoc_vien WHERE id = ?', [hocVienId]);
+    if (!existing[0]) { conn.release(); return res.status(404).json({ error: 'Không tìm thấy học viên' }); }
+    if (existing[0].tai_khoan_hoc_vien_id) { conn.release(); return res.status(409).json({ error: 'Học viên này đã có tài khoản' }); }
+
+    const [dup] = await conn.query('SELECT id FROM tai_khoan_hoc_vien WHERE username = ?', [username]);
+    if (dup[0]) { conn.release(); return res.status(409).json({ error: 'Tên đăng nhập đã tồn tại' }); }
+
+    const hash = await bcrypt.hash(password, 10);
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'INSERT INTO tai_khoan_hoc_vien (username, password_hash, trang_thai) VALUES (?, ?, ?)',
+      [username, hash, 'Hoạt động']
+    );
+    if (email) {
+      await conn.query('UPDATE hoc_vien SET tai_khoan_hoc_vien_id = ?, email = ? WHERE id = ?', [result.insertId, email, hocVienId]);
+    } else {
+      await conn.query('UPDATE hoc_vien SET tai_khoan_hoc_vien_id = ? WHERE id = ?', [result.insertId, hocVienId]);
+    }
+    await conn.commit();
+    res.status(201).json({ success: true, message: 'Đã tạo tài khoản học viên' });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi tạo tài khoản học viên:', err);
+    res.status(500).json({ error: 'Không thể tạo tài khoản: ' + err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+router.post('/accounts/:accountType/:accountId/reset-password', async (req, res) => {
+  try {
+    const table = ACCOUNT_TABLES[req.params.accountType];
+    if (!table) return res.status(400).json({ error: 'Loại tài khoản không hợp lệ' });
+    const { password } = req.body;
+    if (!password || password.length < 6) return res.status(400).json({ error: 'Mật khẩu phải có ít nhất 6 ký tự' });
+
+    const hash = await bcrypt.hash(password, 10);
+    const [result] = await db.query(`UPDATE ${table} SET password_hash = ? WHERE id = ?`, [hash, req.params.accountId]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+    res.json({ success: true, message: 'Đã đặt lại mật khẩu' });
+  } catch (err) {
+    console.error('Lỗi reset mật khẩu:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+router.post('/accounts/:accountType/:accountId/toggle-lock', async (req, res) => {
+  try {
+    const table = ACCOUNT_TABLES[req.params.accountType];
+    if (!table) return res.status(400).json({ error: 'Loại tài khoản không hợp lệ' });
+
+    const [rows] = await db.query(`SELECT trang_thai FROM ${table} WHERE id = ?`, [req.params.accountId]);
+    if (!rows[0]) return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+
+    const next = rows[0].trang_thai === 'Khóa' ? 'Hoạt động' : 'Khóa';
+    await db.query(`UPDATE ${table} SET trang_thai = ? WHERE id = ?`, [next, req.params.accountId]);
+    res.json({ success: true, status: next });
+  } catch (err) {
+    console.error('Lỗi khóa/mở khóa tài khoản:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
   }
 });
 

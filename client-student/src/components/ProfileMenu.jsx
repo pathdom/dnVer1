@@ -23,7 +23,7 @@ export default function ProfileMenu({ profile, onClose, onLogout, onAvatarChange
     }
     setSubmitting(true);
     try {
-      const res = await apiFetch('/api/change-password', {
+      const res = await apiFetch('/api/student/change-password', {
         method: 'POST',
         body: JSON.stringify({ currentPassword, newPassword })
       });
@@ -54,7 +54,7 @@ export default function ProfileMenu({ profile, onClose, onLogout, onAvatarChange
     try {
       const form = new FormData();
       form.append('avatar', file);
-      const res = await apiFetch('/api/upload-avatar', { method: 'POST', body: form });
+      const res = await apiFetch('/api/student/upload-avatar', { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok) {
         setAvatarError(data.error || 'Tải ảnh thất bại');
@@ -101,8 +101,8 @@ export default function ProfileMenu({ profile, onClose, onLogout, onAvatarChange
               <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleAvatarFile} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 15.5, color: 'var(--navy)' }}>{profile?.name || 'Người dùng'}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-soft)' }}>{profile?.department || profile?.role || ''}</div>
+              <div style={{ fontWeight: 700, fontSize: 15.5, color: 'var(--navy)' }}>{profile?.name || 'Học viên'}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--text-soft)' }}>{profile?.id || ''}</div>
               {profile?.email && <div style={{ fontSize: 12.5, color: 'var(--text-faint)', marginTop: 2 }}>{profile.email}</div>}
               <button onClick={handleAvatarPick} disabled={uploadingAvatar} style={{ marginTop: 4, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
                 {uploadingAvatar ? 'Đang tải ảnh...' : 'Đổi ảnh đại diện'}

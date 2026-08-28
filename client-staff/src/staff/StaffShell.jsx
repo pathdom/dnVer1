@@ -4,8 +4,6 @@ import StaffStudentsPage from './StaffStudentsPage';
 import StaffApptPage from './StaffApptPage';
 import StaffTasksPage from './StaffTasksPage';
 import StaffCompetencyPage from './StaffCompetencyPage';
-import StaffChatPage from './StaffChatPage';
-import StaffPerformancePage from './StaffPerformancePage';
 import ChatWidget from '../chat-widget/ChatWidget';
 import ProfileMenu from '../components/ProfileMenu';
 import { apiFetch } from '../lib/apiFetch';
@@ -14,13 +12,27 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
   const [currentPage, setCurrentPage] = useState('home');
   const [chatUnread, setChatUnread] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
-  const [pendingExams, setPendingExams] = useState(0);
+  const [staffProfile, setStaffProfile] = useState(profile);
+  const [companyLogo, setCompanyLogo] = useState(null);
 
   useEffect(() => {
-    apiFetch('/api/staff/competency-exams')
+    apiFetch('/api/staff/profile')
       .then(res => res.json())
-      .then(d => setPendingExams((d.exams || []).filter(e => !e.completed).length))
+      .then(d => { if (!d.error) setStaffProfile(prev => ({ ...prev, ...d })); })
       .catch(() => {});
+  }, []);
+
+  const fetchLogo = () => {
+    apiFetch('/api/settings/logo')
+      .then(res => res.json())
+      .then(d => setCompanyLogo(d.logoUrl || null))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchLogo();
+    window.addEventListener('logoUpdated', fetchLogo);
+    return () => window.removeEventListener('logoUpdated', fetchLogo);
   }, []);
 
   useEffect(() => {
@@ -44,10 +56,14 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
     <div className="app active">
       <aside className="sidebar">
         <div className="brand">
-          <svg width="34" height="34" viewBox="0 0 38 38" fill="none">
-            <path d="M4 26C4 26 10 14 19 14C28 14 34 26 34 26" stroke="#2A9D8F" strokeWidth="2.4" strokeLinecap="round"/>
-            <circle cx="19" cy="14" r="3.2" fill="#DE9F3B"/>
-          </svg>
+          {companyLogo ? (
+            <img src={companyLogo} alt="Company Logo" className="brand-mark" style={{ width: '68px', height: '68px', borderRadius: '14px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }} />
+          ) : (
+            <svg width="68" height="68" viewBox="0 0 38 38" fill="none">
+              <path d="M4 26C4 26 10 14 19 14C28 14 34 26 34 26" stroke="#2A9D8F" strokeWidth="2.4" strokeLinecap="round"/>
+              <circle cx="19" cy="14" r="3.2" fill="#DE9F3B"/>
+            </svg>
+          )}
           <div>
             <div className="brand-name">ALADDIN</div>
             <div className="brand-sub">STAFF WORKSPACE</div>
@@ -75,50 +91,40 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
           </button>
           <button className={`nav-item ${currentPage === 'competency' ? 'active' : ''}`} onClick={() => setCurrentPage('competency')}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            Test năng lực{pendingExams > 0 && <span className="count">{pendingExams}</span>}
-          </button>
-          <button className={`nav-item ${currentPage === 'chat' ? 'active' : ''}`} onClick={() => setCurrentPage('chat')}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-            Tin nhắn học viên<span className="count">3</span>
+            Bài test
           </button>
           <button className={`nav-item ${currentPage === 'internalchat' ? 'active' : ''}`} onClick={() => setCurrentPage('internalchat')}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Chat nội bộ{chatUnread > 0 && <span className="count">{chatUnread}</span>}
-          </button>
-          <button className={`nav-item ${currentPage === 'performance' ? 'active' : ''}`} onClick={() => setCurrentPage('performance')}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
-            Hiệu suất
           </button>
         </nav>
 
         <div className="sidebar-footer">
           <div className="user-chip" onClick={() => setShowProfile(true)} style={{ cursor: 'pointer' }} title="Hồ sơ & đăng xuất">
             <div className="avatar" style={{ overflow: 'hidden' }}>
-              {profile?.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (profile?.avatar || 'TK')}
+              {staffProfile?.avatarUrl ? (
+                <img src={staffProfile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (staffProfile?.avatar || 'TK')}
             </div>
             <div>
-              <div className="user-chip-name">{profile?.name || 'Trần Minh Khoa'}</div>
-              <div className="user-chip-role">{profile?.role || 'Trưởng nhóm tư vấn'}</div>
+              <div className="user-chip-name">{staffProfile?.name || 'Trần Minh Khoa'}</div>
+              <div className="user-chip-role">{staffProfile?.department || staffProfile?.role || 'Trưởng nhóm tư vấn'}</div>
             </div>
           </div>
         </div>
 
         {showProfile && (
-          <ProfileMenu profile={profile} onClose={() => setShowProfile(false)} onLogout={onLogout} onAvatarChange={onAvatarChange} />
+          <ProfileMenu profile={staffProfile} onClose={() => setShowProfile(false)} onLogout={onLogout} onAvatarChange={onAvatarChange} />
         )}
       </aside>
 
       <main className="main">
-        {currentPage === 'home' && <StaffHomePage setCurrentPage={setCurrentPage} />}
+        {currentPage === 'home' && <StaffHomePage setCurrentPage={setCurrentPage} profile={staffProfile} />}
         {currentPage === 'students' && <StaffStudentsPage />}
         {currentPage === 'appt' && <StaffApptPage />}
         {currentPage === 'tasks' && <StaffTasksPage />}
         {currentPage === 'competency' && <StaffCompetencyPage />}
-        {currentPage === 'chat' && <StaffChatPage />}
-        {currentPage === 'performance' && <StaffPerformancePage />}
-        {currentPage === 'internalchat' && <ChatWidget profile={profile} />}
+        {currentPage === 'internalchat' && <ChatWidget profile={staffProfile} />}
       </main>
     </div>
   );

@@ -4,6 +4,8 @@ import Topbar from '../components/Topbar';
 
 export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
   const [employees, setEmployees] = useState([]);
+  const [boPhan, setBoPhan] = useState([]);
+  const [chucDanh, setChucDanh] = useState([]);
   const [filter, setFilter] = useState('all');
   const [workTypeFilter, setWorkTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -15,17 +17,19 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Form State
-  const [formData, setFormData] = useState({
+  const emptyForm = () => ({
     name: '',
     email: '',
     phone: '',
-    department: 'Kinh doanh',
-    role: 'Chuyên viên tư vấn',
-    workType: 'Chính thức',
+    departmentId: boPhan[0]?.id || '',
+    roleId: chucDanh[0]?.id || '',
+    workType: 'Full-time',
     statusText: 'Đang làm việc',
     startDate: ''
   });
+
+  // Form State
+  const [formData, setFormData] = useState(emptyForm());
 
   const fetchEmployees = () => {
     setLoading(true);
@@ -41,8 +45,19 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       });
   };
 
+  const fetchLookups = () => {
+    apiFetch('/api/lookups')
+      .then(res => res.json())
+      .then(d => {
+        setBoPhan(d.boPhan || []);
+        setChucDanh(d.chucDanh || []);
+      })
+      .catch(err => console.error('Fetch lookups error:', err));
+  };
+
   useEffect(() => {
     fetchEmployees();
+    fetchLookups();
   }, []);
 
   const handleInputChange = (e) => {
@@ -52,16 +67,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
 
   const handleOpenAddModal = () => {
     setEditingEmp(null);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      department: 'Kinh doanh',
-      role: 'Chuyên viên tư vấn',
-      workType: 'Chính thức',
-      statusText: 'Đang làm việc',
-      startDate: ''
-    });
+    setFormData(emptyForm());
     setIsModalOpen(true);
   };
 
@@ -71,9 +77,9 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       name: emp.name || '',
       email: emp.email || '',
       phone: emp.phone || '',
-      department: emp.department || 'Kinh doanh',
-      role: emp.role || 'Chuyên viên tư vấn',
-      workType: emp.workType || 'Chính thức',
+      departmentId: emp.departmentId || boPhan[0]?.id || '',
+      roleId: emp.roleId || chucDanh[0]?.id || '',
+      workType: emp.workType || 'Full-time',
       statusText: emp.statusText || 'Đang làm việc',
       startDate: emp.startDateRaw || ''
     });
@@ -134,7 +140,6 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
 
   // Tag styling cho phòng ban
   const getDeptTagStyle = (dept = '') => {
-    if (dept.includes('Kinh doanh')) return { background: 'var(--teal-soft)', color: 'var(--teal)' };
     if (dept.includes('Marketing')) return { background: 'var(--gold-soft)', color: 'var(--gold)' };
     if (dept.includes('Đối ngoại')) return { background: 'var(--coral-soft)', color: 'var(--coral)' };
     if (dept.includes('Hồ sơ')) return { background: '#E7EEFC', color: '#3B6FD1' };
@@ -146,7 +151,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
   const removeAccents = (str) => {
     return (str || '')
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/đ/g, 'd')
       .replace(/Đ/g, 'D')
       .toLowerCase();
@@ -155,15 +160,12 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
   const filtered = employees.filter(e => {
     let matchFilter = true;
     if (filter !== 'all') {
-      const dep = (e.department || '').toLowerCase();
-      if (filter === 'tuvan') matchFilter = dep.includes('kinh doanh');
-      else if (filter === 'hoso') matchFilter = dep.includes('hồ sơ');
-      else if (filter === 'active') matchFilter = (e.statusText || '').toLowerCase().includes('làm');
+      matchFilter = e.department === filter;
     }
 
     let matchWorkType = true;
     if (workTypeFilter !== 'all') {
-      matchWorkType = (e.workType || '').toLowerCase().includes(workTypeFilter.toLowerCase());
+      matchWorkType = (e.workType || '') === workTypeFilter;
     }
 
     let matchSearch = true;
@@ -188,9 +190,9 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
     setSearch('');
   };
 
-  const kinhDoanhCount = employees.filter(e => (e.department || '').includes('Kinh doanh')).length;
-  const hoSoCount = employees.filter(e => (e.department || '').includes('Hồ sơ')).length;
   const activeCount = employees.filter(e => (e.statusText || '').includes('làm')).length;
+  const fullTimeCount = employees.filter(e => e.workType === 'Full-time').length;
+  const departmentCount = boPhan.length;
 
   return (
     <section className="page active">
@@ -220,16 +222,16 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
           <div className="stat-label">Tổng nhân viên CSDL</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{kinhDoanhCount}</div>
-          <div className="stat-label">Phòng Kinh doanh</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{hoSoCount}</div>
-          <div className="stat-label">Phòng xử lý hồ sơ</div>
-        </div>
-        <div className="stat-card">
           <div className="stat-value">{activeCount}</div>
           <div className="stat-label">Đang làm việc</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{fullTimeCount}</div>
+          <div className="stat-label">Nhân viên Full-time</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{departmentCount}</div>
+          <div className="stat-label">Phòng ban</div>
         </div>
       </div>
 
@@ -237,9 +239,11 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', background: 'var(--surface)', padding: '14px 18px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Tất cả ({employees.length})</div>
-          <div className={`chip ${filter === 'tuvan' ? 'active' : ''}`} onClick={() => setFilter('tuvan')}>Phòng kinh doanh ({kinhDoanhCount})</div>
-          <div className={`chip ${filter === 'hoso' ? 'active' : ''}`} onClick={() => setFilter('hoso')}>Phòng hồ sơ ({hoSoCount})</div>
-          <div className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Đang làm việc ({activeCount})</div>
+          {boPhan.map(dep => (
+            <div key={dep.id} className={`chip ${filter === dep.name ? 'active' : ''}`} onClick={() => setFilter(dep.name)}>
+              {dep.name} ({employees.filter(e => e.department === dep.name).length})
+            </div>
+          ))}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -249,9 +253,9 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13px', background: 'var(--bg)', color: 'var(--navy)', fontWeight: '500', cursor: 'pointer' }}
           >
             <option value="all">💼 Tất cả hình thức</option>
-            <option value="Chính thức">Chính thức</option>
-            <option value="Thử việc">Thử việc</option>
-            <option value="Thực tập">Thực tập</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="CTV">CTV</option>
           </select>
         </div>
 
@@ -289,9 +293,10 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Mã NV</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Họ và tên / Email</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Họ và tên</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Số điện thoại</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Phòng ban / Chức danh</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Phòng ban</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Chức danh</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Hình thức</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Trạng thái</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Ngày vào làm</th>
@@ -302,13 +307,13 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="9" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-faint)' }}>
+                  <td colSpan="10" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-faint)' }}>
                     Đang tải danh sách nhân viên từ CSDL...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)' }}>
+                  <td colSpan="10" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)' }}>
                     <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔍</div>
                     Không tìm thấy nhân viên nào phù hợp với bộ lọc.
                     <div>
@@ -326,21 +331,18 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div className="cell-person" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px' }}>{emp.avatar}</div>
-                        <div>
-                          <div className="cell-name" style={{ fontWeight: '700', color: 'var(--navy)' }}>{emp.name}</div>
-                          <div className="cell-sub" style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>{emp.email || 'Chưa có email'}</div>
-                        </div>
+                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px', flex: 'none' }}>{emp.avatar}</div>
+                        <div className="cell-name" style={{ fontWeight: '700', color: 'var(--navy)' }}>{emp.name}</div>
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)' }}>{emp.phone || 'N/A'}</td>
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontWeight: '600', color: 'var(--navy)' }}>{emp.role || 'Nhân viên'}</div>
-                      <span className="dept-tag" style={{ ...getDeptTagStyle(emp.department), padding: '2px 8px', borderRadius: '6px', fontSize: '10.5px', fontWeight: '700', marginTop: '2px', display: 'inline-block' }}>
-                        {emp.department || 'Kinh doanh'}
+                      <span className="dept-tag" style={{ ...getDeptTagStyle(emp.department), padding: '2px 8px', borderRadius: '6px', fontSize: '10.5px', fontWeight: '700', display: 'inline-block' }}>
+                        {emp.department || 'Chưa xác định'}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: '500' }}>{emp.workType || 'Chính thức'}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: '600', color: 'var(--navy)' }}>{emp.role || 'Nhân viên'}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: '500' }}>{emp.workType || 'Full-time'}</td>
                     <td style={{ padding: '14px 16px' }}>
                       <span className="stamp stamp-green">{emp.statusText || 'Đang làm việc'}</span>
                     </td>
@@ -412,25 +414,16 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                   <input required name="name" value={formData.name} onChange={handleInputChange} placeholder="VD: Lê Thu Hà" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Email</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="ha.le@aladdin.vn" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Số điện thoại</label>
+                  <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0911223344" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Số điện thoại</label>
-                  <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0911223344" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
-                </div>
-                <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Phòng ban</label>
-                  <select name="department" value={formData.department} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    <option value="Hành chính kế toán">Hành chính kế toán</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Đối ngoại">Đối ngoại</option>
-                    <option value="Hồ sơ">Hồ sơ</option>
-                    <option value="Đào tạo">Đào tạo</option>
-                    <option value="Kinh doanh">Kinh doanh</option>
+                  <select name="departmentId" value={formData.departmentId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {boPhan.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -438,14 +431,16 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Chức danh</label>
-                  <input name="role" value={formData.role} onChange={handleInputChange} placeholder="Chuyên viên tư vấn / Trưởng nhóm" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <select name="roleId" value={formData.roleId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {chucDanh.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Hình thức làm việc</label>
                   <select name="workType" value={formData.workType} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    <option value="Chính thức">Chính thức</option>
-                    <option value="Thử việc">Thử việc</option>
-                    <option value="Thực tập">Thực tập</option>
+                    <option value="Full-time">Full-time</option>
+                    <option value="Part-time">Part-time</option>
+                    <option value="CTV">CTV</option>
                   </select>
                 </div>
               </div>
@@ -455,7 +450,6 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Trạng thái làm việc</label>
                   <select name="statusText" value={formData.statusText} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
                     <option value="Đang làm việc">Đang làm việc</option>
-                    <option value="Thử việc">Thử việc</option>
                     <option value="Tạm nghỉ">Tạm nghỉ</option>
                     <option value="Đã nghỉ việc">Đã nghỉ việc</option>
                   </select>

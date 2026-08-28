@@ -4,6 +4,8 @@ import Topbar from '../components/Topbar';
 
 export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
   const [students, setStudents] = useState([]);
+  const [tinhThanh, setTinhThanh] = useState([]);
+  const [quocGia, setQuocGia] = useState([]);
   const [filter, setFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -15,18 +17,20 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Form State
-  const [formData, setFormData] = useState({
+  const emptyForm = () => ({
     name: '',
     email: '',
     phone: '',
-    hometown: '',
-    country: 'Nhật Bản',
+    tinhThanhId: tinhThanh[0]?.id || '',
+    quocGiaId: quocGia[0]?.id || '',
     statusText: 'Đang học tiếng',
     ngayNhapHoc: '',
     tienDaDong: '',
     tongTien: ''
   });
+
+  // Form State
+  const [formData, setFormData] = useState(emptyForm());
 
   const fetchStudents = () => {
     setLoading(true);
@@ -42,8 +46,19 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
       });
   };
 
+  const fetchLookups = () => {
+    apiFetch('/api/lookups')
+      .then(res => res.json())
+      .then(d => {
+        setTinhThanh(d.tinhThanh || []);
+        setQuocGia(d.quocGia || []);
+      })
+      .catch(err => console.error('Fetch lookups error:', err));
+  };
+
   useEffect(() => {
     fetchStudents();
+    fetchLookups();
   }, []);
 
   const handleInputChange = (e) => {
@@ -53,17 +68,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
 
   const handleOpenAddModal = () => {
     setEditingStudent(null);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      hometown: '',
-      country: 'Nhật Bản',
-      statusText: 'Đang học tiếng',
-      ngayNhapHoc: '',
-      tienDaDong: '',
-      tongTien: ''
-    });
+    setFormData(emptyForm());
     setIsModalOpen(true);
   };
 
@@ -73,8 +78,8 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
       name: student.name || '',
       email: student.email || '',
       phone: student.phone || '',
-      hometown: student.hometown || '',
-      country: student.country || 'Nhật Bản',
+      tinhThanhId: student.tinhThanhId || tinhThanh[0]?.id || '',
+      quocGiaId: student.quocGiaId || quocGia[0]?.id || '',
       statusText: student.statusText || 'Đang học tiếng',
       ngayNhapHoc: student.ngayNhapHocRaw || '',
       tienDaDong: student.tienDaDong || '',
@@ -234,13 +239,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13px', background: 'var(--bg)', color: 'var(--navy)', fontWeight: '500', cursor: 'pointer' }}
           >
             <option value="all">🌐 Tất cả quốc gia</option>
-            <option value="Nhật Bản">✈️ Nhật Bản</option>
-            <option value="Đức">✈️ Đức</option>
-            <option value="Mỹ">✈️ Mỹ</option>
-            <option value="Úc">✈️ Úc</option>
-            <option value="Hàn Quốc">✈️ Hàn Quốc</option>
-            <option value="Anh">✈️ Anh</option>
-            <option value="Canada">✈️ Canada</option>
+            {quocGia.map(q => <option key={q.id} value={q.name}>✈️ {q.name}</option>)}
           </select>
         </div>
 
@@ -281,7 +280,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Mã HV</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Họ và tên / Email</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Họ và tên</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Số điện thoại</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Quê quán</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Quốc gia đến</th>
@@ -319,11 +318,8 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div className="cell-person" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px' }}>{s.avatar}</div>
-                        <div>
-                          <div className="cell-name" style={{ fontWeight: '700', color: 'var(--navy)' }}>{s.name}</div>
-                          <div className="cell-sub" style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>{s.email || 'Chưa có email'}</div>
-                        </div>
+                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px', flex: 'none' }}>{s.avatar}</div>
+                        <div className="cell-name" style={{ fontWeight: '700', color: 'var(--navy)' }}>{s.name}</div>
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)' }}>{s.phone || 'N/A'}</td>
@@ -396,35 +392,27 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                   <input required name="name" value={formData.name} onChange={handleInputChange} placeholder="VD: Nguyễn Văn Nam" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Email</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="nam.nguyen@gmail.com" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Số điện thoại</label>
                   <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0912345678" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quê quán</label>
-                  <input name="hometown" value={formData.hometown} onChange={handleInputChange} placeholder="Hà Nội / Nghệ An / ..." style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
-                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia đến</label>
-                  <select name="country" value={formData.country} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    <option value="Nhật Bản">✈️ Nhật Bản</option>
-                    <option value="Đức">✈️ Đức</option>
-                    <option value="Mỹ">✈️ Mỹ</option>
-                    <option value="Úc">✈️ Úc</option>
-                    <option value="Hàn Quốc">✈️ Hàn Quốc</option>
-                    <option value="Anh">✈️ Anh</option>
-                    <option value="Canada">✈️ Canada</option>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quê quán</label>
+                  <select name="tinhThanhId" value={formData.tinhThanhId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {tinhThanh.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia đến</label>
+                  <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {quocGia.map(q => <option key={q.id} value={q.id}>✈️ {q.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Trạng thái hồ sơ</label>
                   <select name="statusText" value={formData.statusText} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
@@ -437,22 +425,21 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                     <option value="Tạm hoãn">Tạm hoãn</option>
                   </select>
                 </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Ngày nhập học</label>
                   <input type="date" name="ngayNhapHoc" value={formData.ngayNhapHoc} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tiền đã đóng (VNĐ)</label>
                   <input type="number" name="tienDaDong" value={formData.tienDaDong} onChange={handleInputChange} placeholder="30000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tổng học phí (VNĐ)</label>
-                <input type="number" name="tongTien" value={formData.tongTien} onChange={handleInputChange} placeholder="120000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tổng học phí (VNĐ)</label>
+                  <input type="number" name="tongTien" value={formData.tongTien} onChange={handleInputChange} placeholder="120000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>

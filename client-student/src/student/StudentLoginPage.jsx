@@ -34,11 +34,9 @@ export default function StudentLoginPage({ onLoginSuccess }) {
     <div className="login-page">
       <div className="login-brand">
         <div className="brand">
-          <svg width="36" height="36" viewBox="0 0 38 38" fill="none">
-            <path d="M4 26C4 26 10 14 19 14C28 14 34 26 34 26" stroke="#4FC3B4" strokeWidth="2.4" strokeLinecap="round"/>
-            <circle cx="19" cy="14" r="3.2" fill="#DE9F3B"/>
-            <path d="M4 30H34" stroke="rgba(255,255,255,0.25)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
-          </svg>
+          <div style={{ width: '72px', height: '72px', borderRadius: '16px', background: '#fff', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <img src="/logo.jpg" alt="Aladdin Group" width="62" height="62" style={{ borderRadius: '11px', objectFit: 'cover' }} />
+          </div>
           <div>
             <div className="brand-name">ALADDIN</div>
             <div className="brand-sub">EDUCATION GROUP</div>
@@ -68,11 +66,11 @@ export default function StudentLoginPage({ onLoginSuccess }) {
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Mã học viên hoặc Email</label>
+              <label className="form-label">Mã học viên, Email hoặc Tên đăng nhập</label>
               <input
                 className="form-input"
                 type="text"
-                placeholder="HV-2451 hoặc email@vidu.com"
+                placeholder="HV001, email@vidu.com hoặc tên đăng nhập"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
               />

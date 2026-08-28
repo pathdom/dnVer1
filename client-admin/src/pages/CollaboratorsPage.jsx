@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
-const STATUS_OPTIONS = ['Đang hợp tác', 'Chờ duyệt', 'Tạm dừng'];
+const STATUS_OPTIONS = ['Hoạt động', 'Tạm ngưng'];
 
 function getStampClass(statusText) {
   switch (statusText) {
-    case 'Đang hợp tác': return 'stamp stamp-visa';
-    case 'Chờ duyệt': return 'stamp stamp-processing';
-    case 'Tạm dừng': return 'stamp stamp-leave';
+    case 'Hoạt động': return 'stamp stamp-visa';
+    case 'Tạm ngưng': return 'stamp stamp-leave';
     default: return 'stamp stamp-new';
   }
 }
@@ -32,7 +31,7 @@ export default function CollaboratorsPage() {
   const [toastMessage, setToastMessage] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '', phone: '', referrer: '', statusText: STATUS_OPTIONS[1], registeredAt: '', note: ''
+    name: '', phone: '', referrer: '', statusText: STATUS_OPTIONS[0], registeredAt: ''
   });
 
   const fetchCollaborators = () => {
@@ -52,7 +51,7 @@ export default function CollaboratorsPage() {
 
   const handleOpenAddModal = () => {
     setEditingItem(null);
-    setFormData({ name: '', phone: '', referrer: '', statusText: STATUS_OPTIONS[1], registeredAt: '', note: '' });
+    setFormData({ name: '', phone: '', referrer: '', statusText: STATUS_OPTIONS[0], registeredAt: '' });
     setIsModalOpen(true);
   };
 
@@ -62,9 +61,8 @@ export default function CollaboratorsPage() {
       name: item.name || '',
       phone: item.phone || '',
       referrer: item.referrer || '',
-      statusText: item.statusText || STATUS_OPTIONS[1],
-      registeredAt: item.registeredAtRaw || '',
-      note: item.note || ''
+      statusText: item.statusText || STATUS_OPTIONS[0],
+      registeredAt: item.registeredAtRaw || ''
     });
     setIsModalOpen(true);
   };
@@ -155,16 +153,12 @@ export default function CollaboratorsPage() {
           <div className="stat-label">Tổng cộng tác viên</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{countByStatus('Đang hợp tác')}</div>
-          <div className="stat-label">Đang hợp tác</div>
+          <div className="stat-value">{countByStatus('Hoạt động')}</div>
+          <div className="stat-label">Đang hoạt động</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{countByStatus('Chờ duyệt')}</div>
-          <div className="stat-label">Chờ duyệt hồ sơ</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{countByStatus('Tạm dừng')}</div>
-          <div className="stat-label">Tạm dừng hợp tác</div>
+          <div className="stat-value">{countByStatus('Tạm ngưng')}</div>
+          <div className="stat-label">Tạm ngưng</div>
         </div>
       </div>
 
@@ -279,11 +273,6 @@ export default function CollaboratorsPage() {
                 <select name="statusText" value={formData.statusText} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Ghi chú</label>
-                <input name="note" value={formData.note} onChange={handleInputChange} placeholder="Ghi chú thêm (không bắt buộc)" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>

@@ -11,7 +11,7 @@ const GRADE_SKILLS = [
 const MONTHS = [1, 2, 3, 4, 5, 6];
 const emptyGrades = () => ({ thang1: {}, thang2: {}, thang3: {}, thang4: {}, thang5: {}, thang6: {} });
 
-export default function StudentDetailPage({ studentId, setCurrentPage }) {
+export default function StaffStudentDetailPage({ studentId, onBack }) {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [grades, setGrades] = useState(emptyGrades());
@@ -21,45 +21,13 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
 
   useEffect(() => {
     setLoading(true);
-    const targetId = studentId || 'HV001';
-    apiFetch(`/api/students/${targetId}`)
+    apiFetch(`/api/students/${studentId}`)
       .then(res => {
         if (!res.ok) throw new Error('Student not found');
         return res.json();
       })
-      .then(data => {
-        setStudent(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching student detail:', err);
-        // Fallback: Lấy danh sách và chọn học viên đầu tiên
-        apiFetch('/api/students')
-          .then(res => res.json())
-          .then(d => {
-            if (d.students && d.students.length > 0) {
-              setStudent(d.students[0]);
-            } else {
-              setStudent({
-                id: 'HV001',
-                name: 'Nguyễn Văn An',
-                email: 'an.nguyen@aladdin.vn',
-                phone: '0912345678',
-                hometown: 'Nghệ An',
-                country: 'Nhật Bản',
-                statusText: 'Đang học tiếng',
-                program: 'Hồ sơ du học',
-                ngayNhapHoc: '01/09/2026',
-                avatar: 'AN',
-                tienDaDongFormatted: '30.000.000 ₫',
-                tongTienFormatted: '120.000.000 ₫',
-                joinedDate: '21/08/2026'
-              });
-            }
-            setLoading(false);
-          })
-          .catch(() => setLoading(false));
-      });
+      .then(data => { setStudent(data); setLoading(false); })
+      .catch(err => { console.error('Lỗi tải chi tiết học viên:', err); setLoading(false); });
   }, [studentId]);
 
   useEffect(() => {
@@ -110,7 +78,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
   if (!student) {
     return (
       <section className="page active" style={{ padding: '40px' }}>
-        <button className="breadcrumb" onClick={() => setCurrentPage('students')}>
+        <button className="breadcrumb" onClick={onBack} style={{ cursor: 'pointer' }}>
           ← Quay lại danh sách học viên
         </button>
         <div style={{ padding: '20px', background: 'var(--surface)', borderRadius: '16px' }}>
@@ -122,7 +90,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
 
   return (
     <section className="page active">
-      <button className="breadcrumb" onClick={() => setCurrentPage('students')} style={{ cursor: 'pointer' }}>
+      <button className="breadcrumb" onClick={onBack} style={{ cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         Quay lại danh sách học viên
       </button>
@@ -144,8 +112,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
           </div>
         </div>
         <div className="profile-actions" style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn-ghost" onClick={() => setCurrentPage('internalchat')}>💬 Nhắn tin</button>
-          <button className="btn-primary" onClick={() => setCurrentPage('students')}>✏️ Cập nhật CSDL</button>
+          <button className="btn-primary" onClick={onBack}>✏️ Cập nhật CSDL</button>
         </div>
       </div>
 
@@ -160,8 +127,6 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Quê quán</div><div style={{ fontWeight: '600' }}>{student.hometown || 'Chưa cập nhật'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số điện thoại</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{student.phone || 'N/A'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Email</div><div style={{ fontWeight: '600' }}>{student.email || 'N/A'}</div></div>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số CCCD/Hộ chiếu</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{student.passport || 'P0123456'}</div></div>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Trường THPT</div><div style={{ fontWeight: '600' }}>{student.school || 'THPT Chu Văn An'}</div></div>
             </div>
           </div>
 
@@ -174,8 +139,8 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Trạng thái hồ sơ</div><div style={{ fontWeight: '600' }}>{student.statusText}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Tiền đã đóng</div><div style={{ fontWeight: '700', color: 'var(--green)', fontSize: '15px' }}>{student.tienDaDongFormatted || '0 ₫'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Tổng học phí</div><div style={{ fontWeight: '700', color: 'var(--navy)', fontSize: '15px' }}>{student.tongTienFormatted || '0 ₫'}</div></div>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày nhập học</div><div style={{ fontWeight: '600' }}>{student.ngayNhapHoc || '01/09/2026'}</div></div>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày khởi tạo CSDL</div><div style={{ fontWeight: '600' }}>{student.joinedDate || '21/08/2026'}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày nhập học</div><div style={{ fontWeight: '600' }}>{student.ngayNhapHoc || 'Chưa xếp'}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày khởi tạo CSDL</div><div style={{ fontWeight: '600' }}>{student.joinedDate || student.createdAt || 'N/A'}</div></div>
             </div>
           </div>
 
@@ -231,9 +196,11 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>👩‍💼 Nhân viên phụ trách</h3>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div className="avatar" style={{ width: '40px', height: '40px', background: 'var(--teal-soft)', color: 'var(--teal)', fontWeight: '700', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>TH</div>
+              <div className="avatar" style={{ width: '40px', height: '40px', background: 'var(--teal-soft)', color: 'var(--teal)', fontWeight: '700', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {student.rep ? student.rep.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'NV'}
+              </div>
               <div>
-                <div style={{ fontWeight: '700', color: 'var(--navy)' }}>{student.rep || 'Lê Thu Hà'}</div>
+                <div style={{ fontWeight: '700', color: 'var(--navy)' }}>{student.rep || 'Chưa phân công'}</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Chuyên viên tư vấn & xử lý hồ sơ</div>
               </div>
             </div>
@@ -245,10 +212,10 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
             </div>
             <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontWeight: '700', color: 'var(--teal)' }}>Lê Thu Hà</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{student.joinedDate || '21/08/2026'}</span>
+                <span style={{ fontWeight: '700', color: 'var(--teal)' }}>{student.rep || 'Hệ thống'}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{student.joinedDate || student.createdAt || ''}</span>
               </div>
-              <div>Hồ sơ đã cập nhật CSDL MySQL. Học viên chuẩn bị nhập học kỳ Thu 2026.</div>
+              <div>Hồ sơ đã cập nhật CSDL MySQL. Xem chi tiết bên trên để nắm tình trạng hiện tại.</div>
             </div>
           </div>
         </div>

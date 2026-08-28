@@ -2,15 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
-const STATUS_OPTIONS = ['Mới tiếp nhận', 'Đang tư vấn', 'Tiềm năng cao', 'Đã chốt (thành học viên)', 'Hủy'];
-const COUNTRY_OPTIONS = ['Nhật Bản', 'Hàn Quốc', 'Đức', 'Mỹ', 'Úc', 'Anh', 'Canada'];
+const STATUS_OPTIONS = ['Mới tiếp nhận', 'Đang tư vấn', 'Tiềm năng cao', 'Đã chốt', 'Hủy'];
 
 function getStampClass(statusText) {
   switch (statusText) {
     case 'Mới tiếp nhận': return 'stamp stamp-new';
     case 'Đang tư vấn': return 'stamp stamp-processing';
     case 'Tiềm năng cao': return 'stamp stamp-visa';
-    case 'Đã chốt (thành học viên)': return 'stamp stamp-submitted';
+    case 'Đã chốt': return 'stamp stamp-submitted';
     case 'Hủy': return 'stamp stamp-leave';
     default: return 'stamp stamp-new';
   }
@@ -26,6 +25,8 @@ function initialsOf(name) {
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [staffList, setStaffList] = useState([]);
+  const [quocGia, setQuocGia] = useState([]);
+  const [tinhThanh, setTinhThanh] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -36,10 +37,14 @@ export default function CustomersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Form State
-  const [formData, setFormData] = useState({
-    name: '', phone: '', nhanVienId: '', ngayDangKy: '', country: COUNTRY_OPTIONS[0], statusText: STATUS_OPTIONS[0], note: ''
+  const emptyForm = () => ({
+    name: '', phone: '', nhanVienId: '', ngayDangKy: '',
+    quocGiaId: quocGia[0]?.id || '', tinhThanhId: tinhThanh[0]?.id || '',
+    statusText: STATUS_OPTIONS[0], note: ''
   });
+
+  // Form State
+  const [formData, setFormData] = useState(emptyForm());
 
   const fetchCustomers = () => {
     setLoading(true);
@@ -61,6 +66,13 @@ export default function CustomersPage() {
       .then(res => res.json())
       .then(d => setStaffList(d.employees || []))
       .catch(() => {});
+    apiFetch('/api/lookups')
+      .then(res => res.json())
+      .then(d => {
+        setQuocGia(d.quocGia || []);
+        setTinhThanh(d.tinhThanh || []);
+      })
+      .catch(() => {});
   }, []);
 
   const handleInputChange = (e) => {
@@ -70,7 +82,7 @@ export default function CustomersPage() {
 
   const handleOpenAddModal = () => {
     setEditingCustomer(null);
-    setFormData({ name: '', phone: '', nhanVienId: '', ngayDangKy: '', country: COUNTRY_OPTIONS[0], statusText: STATUS_OPTIONS[0], note: '' });
+    setFormData(emptyForm());
     setIsModalOpen(true);
   };
 
@@ -81,7 +93,8 @@ export default function CustomersPage() {
       phone: customer.phone || '',
       nhanVienId: customer.nhanVienId || '',
       ngayDangKy: customer.ngayDangKyRaw || '',
-      country: customer.country || COUNTRY_OPTIONS[0],
+      quocGiaId: customer.quocGiaId || quocGia[0]?.id || '',
+      tinhThanhId: customer.tinhThanhId || tinhThanh[0]?.id || '',
       statusText: customer.statusText || STATUS_OPTIONS[0],
       note: customer.note || ''
     });
@@ -210,7 +223,7 @@ export default function CustomersPage() {
           <div className="stat-label">Đang tư vấn</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{countByStatus('Đã chốt (thành học viên)')}</div>
+          <div className="stat-value">{countByStatus('Đã chốt')}</div>
           <div className="stat-label">Đã chuyển thành học viên</div>
         </div>
       </div>
@@ -365,10 +378,19 @@ export default function CustomersPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia quan tâm</label>
-                  <select name="country" value={formData.country} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>✈️ {c}</option>)}
+                  <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {quocGia.map(q => <option key={q.id} value={q.id}>✈️ {q.name}</option>)}
                   </select>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tỉnh/thành</label>
+                  <select name="tinhThanhId" value={formData.tinhThanhId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    {tinhThanh.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Nhân viên tư vấn</label>
                   <select name="nhanVienId" value={formData.nhanVienId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
@@ -376,19 +398,17 @@ export default function CustomersPage() {
                     {staffList.map(s => <option key={s.dbId} value={s.dbId}>{s.name}</option>)}
                   </select>
                 </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Trạng thái</label>
                   <select name="statusText" value={formData.statusText} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Ngày đăng ký</label>
-                  <input type="date" name="ngayDangKy" value={formData.ngayDangKy} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
-                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Ngày đăng ký</label>
+                <input type="date" name="ngayDangKy" value={formData.ngayDangKy} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
               </div>
 
               <div>

@@ -1,12 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Topbar from '../components/Topbar';
+import { apiFetch } from '../lib/apiFetch';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('company');
   const [toggles, setToggles] = useState({ n1: true, n2: true, n3: true, n4: true, n5: false });
-  const [logo, setLogo] = useState(() => localStorage.getItem('aladdin_logo') || null);
+  const [logo, setLogo] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    apiFetch('/api/settings/logo')
+      .then(res => res.json())
+      .then(d => setLogo(d.logoUrl || null))
+      .catch(() => {});
+  }, []);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -15,29 +23,37 @@ export default function SettingsPage() {
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Dung lượng ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn!');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target.result;
-        setLogo(dataUrl);
-        localStorage.setItem('aladdin_logo', dataUrl);
-        window.dispatchEvent(new Event('logoUpdated'));
-        showToast('✅ Đã tải và thay đổi logo công ty thành công!');
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Dung lượng ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn!');
+      return;
     }
+    const form = new FormData();
+    form.append('logo', file);
+    apiFetch('/api/settings/logo', { method: 'POST', body: form })
+      .then(res => res.json())
+      .then(d => {
+        if (d.success) {
+          setLogo(d.logoUrl);
+          window.dispatchEvent(new Event('logoUpdated'));
+          showToast('✅ Đã tải và thay đổi logo công ty thành công!');
+        } else {
+          alert(d.error || 'Không thể tải logo lên');
+        }
+      })
+      .catch(err => alert('Lỗi kết nối máy chủ: ' + err.message));
   };
 
   const handleRemoveLogo = () => {
     if (window.confirm('Bạn có muốn khôi phục logo mặc định của hệ thống?')) {
-      setLogo(null);
-      localStorage.removeItem('aladdin_logo');
-      window.dispatchEvent(new Event('logoUpdated'));
-      showToast('🔄 Đã khôi phục logo mặc định');
+      apiFetch('/api/settings/logo', { method: 'DELETE' })
+        .then(res => res.json())
+        .then(() => {
+          setLogo(null);
+          window.dispatchEvent(new Event('logoUpdated'));
+          showToast('🔄 Đã khôi phục logo mặc định');
+        })
+        .catch(err => alert('Lỗi kết nối máy chủ: ' + err.message));
     }
   };
 

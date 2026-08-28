@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 
-export default function StaffHomePage({ setCurrentPage }) {
+export default function StaffHomePage({ setCurrentPage, profile }) {
   const [data, setData] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const firstName = profile?.name ? profile.name.trim().split(/\s+/).pop() : '';
 
   useEffect(() => {
     apiFetch('/api/staff/overview')
@@ -24,7 +25,7 @@ export default function StaffHomePage({ setCurrentPage }) {
       <div className="topbar">
         <div className="page-heading">
           <div className="eyebrow">Thứ Tư, 19/08/2026</div>
-          <h1>Chào buổi sáng, Khoa 👋</h1>
+          <h1>Chào buổi sáng, {firstName || 'bạn'} 👋</h1>
           <p>Bạn có 5 buổi tư vấn và 3 công việc cần hoàn thành hôm nay.</p>
         </div>
         <div className="topbar-right">

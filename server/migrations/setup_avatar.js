@@ -1,5 +1,5 @@
-// One-time (idempotent) migration: adds avatar_url to admin/nhan_vien so users
-// can upload a profile picture instead of showing text initials.
+// One-time (idempotent) migration: adds avatar_url to admin/nhan_vien/hoc_vien
+// so users can upload a profile picture instead of showing text initials.
 // Run with: node server/migrations/setup_avatar.js
 const db = require('../db');
 
@@ -22,8 +22,9 @@ async function ensureAvatarColumn(table) {
 }
 
 (async () => {
-  await ensureAvatarColumn('admin');
+  await ensureAvatarColumn('tai_khoan_admin');
   await ensureAvatarColumn('nhan_vien');
+  await ensureAvatarColumn('hoc_vien');
   console.log('Avatar migration complete.');
   process.exit(0);
 })().catch(err => {
