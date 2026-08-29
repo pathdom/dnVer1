@@ -1,31 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
-const INITIAL_ACCOUNTS = [
-  { id: 1, type: 'staff', name: 'Minh Hằng', email: 'admin@aladdin.vn', role: 'Quản trị viên', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 09:12', avatar: 'MH' },
-  { id: 2, type: 'staff', name: 'Trần Minh Khoa', email: 'khoa.tran@aladdin.vn', role: 'Trưởng nhóm tư vấn', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 08:40', avatar: 'TK' },
-  { id: 3, type: 'staff', name: 'Lê Thị Hồng', email: 'hong.le@aladdin.vn', role: 'Tư vấn viên', status: 'active', statusText: 'Đang hoạt động', lastLogin: '18/08/2026 17:02', avatar: 'LH' },
-  { id: 4, type: 'staff', name: 'Phạm Thị Yến', email: 'yen.pham@aladdin.vn', role: 'Chuyên viên hồ sơ', status: 'locked', statusText: 'Đã khóa', lastLogin: '10/08/2026 14:30', avatar: 'PY' },
-  { id: 5, type: 'student', name: 'Nguyễn Thị Lan Anh', email: 'lananh.nguyen@email.com', role: 'Mã HV-2451', status: 'active', statusText: 'Đang hoạt động', lastLogin: '19/08/2026 07:55', avatar: 'LA' },
-  { id: 6, type: 'student', name: 'Phạm Đức Huy', email: 'duchuy.pham@email.com', role: 'Mã HV-2452', status: 'active', statusText: 'Đang hoạt động', lastLogin: '17/08/2026 20:11', avatar: 'ĐH' },
-  { id: 7, type: 'student', name: 'Vũ Ngọc Mai', email: 'ngocmai.vu@email.com', role: 'Mã HV-2453', status: 'pending', statusText: 'Chờ kích hoạt', lastLogin: 'Chưa đăng nhập', avatar: 'NM' },
-  { id: 8, type: 'student', name: 'Đỗ Gia Bảo', email: 'giabao.do@email.com', role: 'Mã HV-2454', status: 'active', statusText: 'Đang hoạt động', lastLogin: '16/08/2026 11:48', avatar: 'GB' },
-];
-
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState(INITIAL_ACCOUNTS);
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [availableEmployees, setAvailableEmployees] = useState([]);
+  const [availableStudents, setAvailableStudents] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
   // Modals Open State
   const [activeModal, setActiveModal] = useState(null); // 'createStaff', 'createStudent', 'resetStaff', 'resetStudent'
+  const [submitting, setSubmitting] = useState(false);
 
   // Form States
-  const [staffForm, setStaffForm] = useState({ name: '', email: '', dept: 'Kinh doanh', role: 'Nhân viên', password: 'Vb7x92Km' });
-  const [studentForm, setStudentForm] = useState({ student: 'Nguyễn Thị Lan Anh — HV-2451', email: '', password: 'Hs4mQ81p' });
-  const [resetStaffForm, setResetStaffForm] = useState({ staff: 'Minh Hằng — admin@aladdin.vn', password: 'Kt2vB58r' });
-  const [resetStudentForm, setResetStudentForm] = useState({ student: 'Nguyễn Thị Lan Anh — HV-2451', password: 'Sv9pL34w' });
+  const [staffForm, setStaffForm] = useState({ nhanVienId: '', email: '', username: '', password: '' });
+  const [studentForm, setStudentForm] = useState({ hocVienId: '', email: '', username: '', password: '' });
+  const [resetForm, setResetForm] = useState({ accountId: '', password: '' });
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -44,88 +37,141 @@ export default function AccountsPage() {
     showToast('Đã sao chép mật khẩu vào bộ nhớ tạm');
   };
 
-  const getInitials = (name) => {
-    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '??';
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const fetchAccounts = () => {
+    setLoading(true);
+    apiFetch('/api/accounts')
+      .then(res => res.json())
+      .then(d => { setAccounts(d.accounts || []); setLoading(false); })
+      .catch(err => { console.error(err); setLoading(false); });
   };
 
-  // Toggle Account Lock/Unlock
-  const toggleAcctLock = (id) => {
-    setAccounts(prev => prev.map(acct => {
-      if (acct.id === id) {
-        const isLocked = acct.status === 'locked';
-        const nextStatus = isLocked ? 'active' : 'locked';
-        const nextStatusText = isLocked ? 'Đang hoạt động' : 'Đã khóa';
-        showToast(isLocked ? `Đã mở khóa tài khoản "${acct.name}"` : `Đã khóa tài khoản "${acct.name}"`);
-        return { ...acct, status: nextStatus, statusText: nextStatusText };
-      }
-      return acct;
-    }));
+  const fetchAvailableEmployees = () => {
+    apiFetch('/api/accounts/available-employees')
+      .then(res => res.json())
+      .then(d => setAvailableEmployees(d.employees || []))
+      .catch(err => console.error(err));
+  };
+
+  const fetchAvailableStudents = () => {
+    apiFetch('/api/accounts/available-students')
+      .then(res => res.json())
+      .then(d => setAvailableStudents(d.students || []))
+      .catch(err => console.error(err));
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const openCreateStaff = () => {
+    fetchAvailableEmployees();
+    setStaffForm({ nhanVienId: '', email: '', username: '', password: generatePassword() });
+    setActiveModal('createStaff');
+  };
+
+  const openCreateStudent = () => {
+    fetchAvailableStudents();
+    setStudentForm({ hocVienId: '', email: '', username: '', password: generatePassword() });
+    setActiveModal('createStudent');
+  };
+
+  const openReset = (accountType, accountId) => {
+    setResetForm({ accountId, password: generatePassword() });
+    setActiveModal(accountType === 'student' ? 'resetStudent' : 'resetStaff');
   };
 
   // Create Staff Account
   const handleCreateStaff = (e) => {
     e.preventDefault();
-    if (!staffForm.name.trim()) return alert('Vui lòng nhập Họ và tên');
+    if (!staffForm.nhanVienId) return alert('Vui lòng chọn nhân viên');
+    if (!staffForm.username.trim()) return alert('Vui lòng nhập tên đăng nhập');
 
-    const newAcct = {
-      id: Date.now(),
-      type: 'staff',
-      name: staffForm.name.trim(),
-      email: staffForm.email.trim() || 'nhanvien@aladdin.vn',
-      role: staffForm.role,
-      status: 'active',
-      statusText: 'Đang hoạt động',
-      lastLogin: 'Chưa đăng nhập',
-      avatar: getInitials(staffForm.name)
-    };
-
-    setAccounts([newAcct, ...accounts]);
-    setActiveModal(null);
-    showToast(`Đã tạo tài khoản nhân viên cho "${staffForm.name}"`);
-    setStaffForm({ name: '', email: '', dept: 'Kinh doanh', role: 'Nhân viên', password: generatePassword() });
+    setSubmitting(true);
+    apiFetch('/api/accounts/staff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(staffForm)
+    })
+      .then(res => res.json())
+      .then(data => {
+        setSubmitting(false);
+        if (data.success) {
+          setActiveModal(null);
+          showToast(data.message || 'Đã tạo tài khoản nhân viên');
+          fetchAccounts();
+        } else {
+          alert(data.error || 'Có lỗi xảy ra');
+        }
+      })
+      .catch(err => { setSubmitting(false); alert('Lỗi kết nối máy chủ: ' + err.message); });
   };
 
   // Create Student Account
   const handleCreateStudent = (e) => {
     e.preventDefault();
-    const name = studentForm.student.split('—')[0].trim();
-    const maHV = studentForm.student.split('—')[1]?.trim() || 'HV';
+    if (!studentForm.hocVienId) return alert('Vui lòng chọn học viên');
+    if (!studentForm.username.trim()) return alert('Vui lòng nhập tên đăng nhập');
 
-    const newAcct = {
-      id: Date.now(),
-      type: 'student',
-      name,
-      email: studentForm.email.trim() || 'hocvien@email.com',
-      role: `Mã ${maHV}`,
-      status: 'pending',
-      statusText: 'Chờ kích hoạt',
-      lastLogin: 'Chưa đăng nhập',
-      avatar: getInitials(name)
-    };
-
-    setAccounts([newAcct, ...accounts]);
-    setActiveModal(null);
-    showToast(`Đã tạo tài khoản học viên cho "${name}"`);
-    setStudentForm({ student: 'Nguyễn Thị Lan Anh — HV-2451', email: '', password: generatePassword() });
+    setSubmitting(true);
+    apiFetch('/api/accounts/student', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(studentForm)
+    })
+      .then(res => res.json())
+      .then(data => {
+        setSubmitting(false);
+        if (data.success) {
+          setActiveModal(null);
+          showToast(data.message || 'Đã tạo tài khoản học viên');
+          fetchAccounts();
+        } else {
+          alert(data.error || 'Có lỗi xảy ra');
+        }
+      })
+      .catch(err => { setSubmitting(false); alert('Lỗi kết nối máy chủ: ' + err.message); });
   };
 
-  // Reset Staff Password
-  const handleResetStaff = (e) => {
+  // Reset Password (dùng chung cho cả nhân viên & học viên)
+  const handleResetPassword = (e) => {
     e.preventDefault();
-    const name = resetStaffForm.staff.split('—')[0].trim();
-    setActiveModal(null);
-    showToast(`Đã reset mật khẩu cho nhân viên "${name}"`);
+    if (!resetForm.accountId) return alert('Vui lòng chọn tài khoản');
+
+    const target = accounts.find(a => `${a.accountType}-${a.accountId}` === resetForm.accountId);
+    if (!target) return alert('Không tìm thấy tài khoản đã chọn');
+
+    setSubmitting(true);
+    apiFetch(`/api/accounts/${target.accountType}/${target.accountId}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: resetForm.password })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setSubmitting(false);
+        if (data.success) {
+          setActiveModal(null);
+          showToast(`Đã reset mật khẩu cho "${target.name}"`);
+        } else {
+          alert(data.error || 'Có lỗi xảy ra');
+        }
+      })
+      .catch(err => { setSubmitting(false); alert('Lỗi kết nối máy chủ: ' + err.message); });
   };
 
-  // Reset Student Password
-  const handleResetStudent = (e) => {
-    e.preventDefault();
-    const name = resetStudentForm.student.split('—')[0].trim();
-    setActiveModal(null);
-    showToast(`Đã reset mật khẩu cho học viên "${name}"`);
+  // Toggle Account Lock/Unlock
+  const toggleAcctLock = (acct) => {
+    apiFetch(`/api/accounts/${acct.accountType}/${acct.accountId}/toggle-lock`, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast(data.status === 'Khóa' ? `Đã khóa tài khoản "${acct.name}"` : `Đã mở khóa tài khoản "${acct.name}"`);
+          fetchAccounts();
+        } else {
+          alert(data.error || 'Có lỗi xảy ra');
+        }
+      })
+      .catch(err => alert('Lỗi kết nối máy chủ: ' + err.message));
   };
 
   // Filtering
@@ -134,6 +180,7 @@ export default function AccountsPage() {
     const matchSearch =
       (a.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (a.email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (a.username || '').toLowerCase().includes(search.toLowerCase()) ||
       (a.role || '').toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
@@ -141,10 +188,12 @@ export default function AccountsPage() {
   const staffCount = accounts.filter(a => a.type === 'staff').length;
   const studentCount = accounts.filter(a => a.type === 'student').length;
 
+  const resetableAccounts = accounts.filter(a => a.type === (activeModal === 'resetStudent' ? 'student' : 'staff'));
+
   return (
     <section className="page active">
       <Topbar
-        eyebrow={`${accounts.length} tài khoản`}
+        eyebrow={`${accounts.length} tài khoản CSDL`}
         title="Quản lý tài khoản"
         subtitle="Tạo mới và quản lý tài khoản đăng nhập cho nhân viên và học viên."
       />
@@ -159,28 +208,28 @@ export default function AccountsPage() {
 
       {/* ACTION CARDS GRID */}
       <div className="action-grid">
-        <button className="action-card" onClick={() => setActiveModal('createStaff')}>
+        <button className="action-card" onClick={openCreateStaff}>
           <div className="action-card-icon" style={{ background: 'var(--teal-soft)' }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
           <div className="action-card-title">Tạo tài khoản nhân viên</div>
           <div className="action-card-desc">Cấp tài khoản đăng nhập nội bộ cho nhân viên mới.</div>
           <div className="action-card-arrow">Tạo mới →</div>
         </button>
 
-        <button className="action-card" onClick={() => setActiveModal('createStudent')}>
+        <button className="action-card" onClick={openCreateStudent}>
           <div className="action-card-icon" style={{ background: 'var(--gold-soft)' }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><path d="M22 10v6"/></svg></div>
           <div className="action-card-title">Tạo tài khoản học viên</div>
           <div className="action-card-desc">Cấp tài khoản cổng thông tin cho học viên theo hồ sơ.</div>
           <div className="action-card-arrow">Tạo mới →</div>
         </button>
 
-        <button className="action-card" onClick={() => setActiveModal('resetStaff')}>
+        <button className="action-card" onClick={() => { setResetForm({ accountId: '', password: generatePassword() }); setActiveModal('resetStaff'); }}>
           <div className="action-card-icon" style={{ background: '#E7EEFC' }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3B6FD1" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><path d="M12 15v2"/></svg></div>
           <div className="action-card-title">Reset mật khẩu nhân viên</div>
           <div className="action-card-desc">Đặt lại mật khẩu khi nhân viên quên hoặc cần bảo mật lại.</div>
           <div className="action-card-arrow">Reset ngay →</div>
         </button>
 
-        <button className="action-card" onClick={() => setActiveModal('resetStudent')}>
+        <button className="action-card" onClick={() => { setResetForm({ accountId: '', password: generatePassword() }); setActiveModal('resetStudent'); }}>
           <div className="action-card-icon" style={{ background: 'var(--coral-soft)' }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><path d="M12 15v2"/></svg></div>
           <div className="action-card-title">Reset mật khẩu học viên</div>
           <div className="action-card-desc">Đặt lại mật khẩu đăng nhập cổng thông tin học viên.</div>
@@ -197,7 +246,7 @@ export default function AccountsPage() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <input
             type="text"
-            placeholder="Tìm theo tên, email..."
+            placeholder="Tìm theo tên, email, tài khoản..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '13px' }}
@@ -220,7 +269,13 @@ export default function AccountsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredAccounts.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-faint)' }}>
+                    Đang tải danh sách tài khoản từ CSDL...
+                  </td>
+                </tr>
+              ) : filteredAccounts.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-faint)' }}>
                     Không có tài khoản phù hợp với tìm kiếm.
@@ -228,13 +283,15 @@ export default function AccountsPage() {
                 </tr>
               ) : (
                 filteredAccounts.map(acct => (
-                  <tr key={acct.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <tr key={`${acct.accountType}-${acct.accountId}`} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '14px 18px' }}>
                       <div className="cell-person" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="avatar" style={{ width: '34px', height: '34px', fontSize: '12px' }}>{acct.avatar}</div>
+                        <div className="avatar" style={{ width: '34px', height: '34px', fontSize: '12px', overflow: 'hidden' }}>
+                          {acct.avatarUrl ? <img src={acct.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : acct.avatar}
+                        </div>
                         <div>
                           <div className="cell-name" style={{ fontWeight: '600', color: 'var(--navy)' }}>{acct.name}</div>
-                          <div className="cell-sub" style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>{acct.email}</div>
+                          <div className="cell-sub" style={{ fontSize: '11.5px', color: 'var(--text-faint)' }}>{acct.username}</div>
                         </div>
                       </div>
                     </td>
@@ -245,7 +302,7 @@ export default function AccountsPage() {
                     </td>
                     <td style={{ padding: '14px 18px', fontWeight: '500' }}>{acct.role}</td>
                     <td style={{ padding: '14px 18px' }}>
-                      <span className={`stamp ${acct.status === 'locked' ? 'stamp-hold' : acct.status === 'pending' ? 'stamp-processing' : 'stamp-green'}`}>
+                      <span className={`stamp ${acct.status === 'locked' ? 'stamp-hold' : 'stamp-green'}`}>
                         {acct.statusText}
                       </span>
                     </td>
@@ -255,7 +312,7 @@ export default function AccountsPage() {
                         <button
                           className="acct-icon-btn"
                           title="Reset mật khẩu"
-                          onClick={() => setActiveModal(acct.type === 'staff' ? 'resetStaff' : 'resetStudent')}
+                          onClick={() => openReset(acct.accountType, acct.accountId)}
                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '6px', color: 'var(--text-soft)' }}
                         >
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -263,7 +320,7 @@ export default function AccountsPage() {
                         <button
                           className={`acct-icon-btn ${acct.status !== 'locked' ? 'danger' : ''}`}
                           title={acct.status === 'locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
-                          onClick={() => toggleAcctLock(acct.id)}
+                          onClick={() => toggleAcctLock(acct)}
                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '6px', color: acct.status === 'locked' ? 'var(--teal)' : 'var(--coral)' }}
                         >
                           {acct.status === 'locked' ? (
@@ -292,33 +349,22 @@ export default function AccountsPage() {
             </div>
             <form onSubmit={handleCreateStaff} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Họ và tên *</label>
-                <input required type="text" value={staffForm.name} onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} placeholder="Nguyễn Văn A" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Chọn nhân viên (chưa có tài khoản) *</label>
+                <select required value={staffForm.nhanVienId} onChange={e => setStaffForm({ ...staffForm, nhanVienId: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
+                  <option value="">-- Chọn nhân viên --</option>
+                  {availableEmployees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.maNhanVien}</option>)}
+                </select>
+                {availableEmployees.length === 0 && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-faint)', marginTop: '6px' }}>Tất cả nhân viên trong CSDL đã có tài khoản.</div>
+                )}
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Email nội bộ</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Email nội bộ (dùng để đăng nhập)</label>
                 <input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })} placeholder="ten@aladdin.vn" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Phòng ban</label>
-                  <select value={staffForm.dept} onChange={e => setStaffForm({ ...staffForm, dept: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                    <option>Hành chính kế toán</option>
-                    <option>Marketing</option>
-                    <option>Đối ngoại</option>
-                    <option>Hồ sơ</option>
-                    <option>Đào tạo</option>
-                    <option>Kinh doanh</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Vai trò</label>
-                  <select value={staffForm.role} onChange={e => setStaffForm({ ...staffForm, role: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                    <option>Nhân viên</option>
-                    <option>Trưởng nhóm</option>
-                    <option>Quản trị viên</option>
-                  </select>
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Tên đăng nhập *</label>
+                <input required type="text" value={staffForm.username} onChange={e => setStaffForm({ ...staffForm, username: e.target.value })} placeholder="nv_ten" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Mật khẩu tạm thời</label>
@@ -330,7 +376,7 @@ export default function AccountsPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-ghost" style={{ padding: '8px 16px' }}>Hủy</button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 18px' }}>Tạo tài khoản</button>
+                <button type="submit" disabled={submitting} className="btn-primary" style={{ padding: '8px 18px' }}>{submitting ? 'Đang tạo...' : 'Tạo tài khoản'}</button>
               </div>
             </form>
           </div>
@@ -347,17 +393,22 @@ export default function AccountsPage() {
             </div>
             <form onSubmit={handleCreateStudent} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Chọn học viên theo hồ sơ</label>
-                <select value={studentForm.student} onChange={e => setStudentForm({ ...studentForm, student: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                  <option>Nguyễn Thị Lan Anh — HV-2451</option>
-                  <option>Phạm Đức Huy — HV-2452</option>
-                  <option>Vũ Ngọc Mai — HV-2453</option>
-                  <option>Đỗ Gia Bảo — HV-2454</option>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Chọn học viên theo hồ sơ (chưa có tài khoản) *</label>
+                <select required value={studentForm.hocVienId} onChange={e => setStudentForm({ ...studentForm, hocVienId: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
+                  <option value="">-- Chọn học viên --</option>
+                  {availableStudents.map(s => <option key={s.id} value={s.id}>{s.name} — {s.maHocVien}</option>)}
                 </select>
+                {availableStudents.length === 0 && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-faint)', marginTop: '6px' }}>Tất cả học viên trong CSDL đã có tài khoản.</div>
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Email đăng nhập</label>
                 <input type="email" value={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} placeholder="email@vidu.com" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Tên đăng nhập *</label>
+                <input required type="text" value={studentForm.username} onChange={e => setStudentForm({ ...studentForm, username: e.target.value })} placeholder="hv_ten" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Mật khẩu tạm thời</label>
@@ -369,77 +420,44 @@ export default function AccountsPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-ghost" style={{ padding: '8px 16px' }}>Hủy</button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 18px' }}>Tạo tài khoản</button>
+                <button type="submit" disabled={submitting} className="btn-primary" style={{ padding: '8px 18px' }}>{submitting ? 'Đang tạo...' : 'Tạo tài khoản'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 3: RESET MẬT KHẨU NHÂN VIÊN */}
-      {activeModal === 'resetStaff' && (
+      {/* MODAL 3 & 4: RESET MẬT KHẨU (dùng chung UI cho nhân viên & học viên) */}
+      {(activeModal === 'resetStaff' || activeModal === 'resetStudent') && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 20, 35, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="modal-card" style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', margin: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: '600', color: 'var(--navy)' }}>Reset mật khẩu nhân viên</h3>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: '600', color: 'var(--navy)' }}>
+                {activeModal === 'resetStudent' ? 'Reset mật khẩu học viên' : 'Reset mật khẩu nhân viên'}
+              </h3>
               <button onClick={() => setActiveModal(null)} style={{ background: 'var(--bg)', border: 'none', width: '30px', height: '30px', borderRadius: '8px', cursor: 'pointer' }}>✕</button>
             </div>
-            <form onSubmit={handleResetStaff} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleResetPassword} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Chọn nhân viên</label>
-                <select value={resetStaffForm.staff} onChange={e => setResetStaffForm({ ...resetStaffForm, staff: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                  <option>Minh Hằng — admin@aladdin.vn</option>
-                  <option>Trần Minh Khoa — khoa.tran@aladdin.vn</option>
-                  <option>Lê Thị Hồng — hong.le@aladdin.vn</option>
-                  <option>Phạm Thị Yến — yen.pham@aladdin.vn</option>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>{activeModal === 'resetStudent' ? 'Chọn học viên' : 'Chọn nhân viên'}</label>
+                <select required value={resetForm.accountId} onChange={e => setResetForm({ ...resetForm, accountId: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
+                  <option value="">-- Chọn tài khoản --</option>
+                  {resetableAccounts.map(a => (
+                    <option key={`${a.accountType}-${a.accountId}`} value={`${a.accountType}-${a.accountId}`}>{a.name} — {a.username}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Mật khẩu mới</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input type="text" readOnly value={resetStaffForm.password} style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font-mono)' }} />
-                  <button type="button" onClick={() => setResetStaffForm({ ...resetStaffForm, password: generatePassword() })} style={{ width: '38px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>🔄</button>
-                  <button type="button" onClick={() => copyPassword(resetStaffForm.password)} style={{ width: '38px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>📋</button>
+                  <input type="text" readOnly value={resetForm.password} style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font-mono)' }} />
+                  <button type="button" onClick={() => setResetForm({ ...resetForm, password: generatePassword() })} style={{ width: '38px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>🔄</button>
+                  <button type="button" onClick={() => copyPassword(resetForm.password)} style={{ width: '38px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>📋</button>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                 <button type="button" onClick={() => setActiveModal(null)} className="btn-ghost" style={{ padding: '8px 16px' }}>Hủy</button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 18px' }}>Xác nhận reset</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: RESET MẬT KHẨU HỌC VIÊN */}
-      {activeModal === 'resetStudent' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 20, 35, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div className="modal-card" style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', margin: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: '600', color: 'var(--navy)' }}>Reset mật khẩu học viên</h3>
-              <button onClick={() => setActiveModal(null)} style={{ background: 'var(--bg)', border: 'none', width: '30px', height: '30px', borderRadius: '8px', cursor: 'pointer' }}>✕</button>
-            </div>
-            <form onSubmit={handleResetStudent} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Chọn học viên</label>
-                <select value={resetStudentForm.student} onChange={e => setResetStudentForm({ ...resetStudentForm, student: e.target.value })} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', background: '#fff' }}>
-                  <option>Nguyễn Thị Lan Anh — HV-2451</option>
-                  <option>Phạm Đức Huy — HV-2452</option>
-                  <option>Vũ Ngọc Mai — HV-2453</option>
-                  <option>Đỗ Gia Bảo — HV-2454</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px' }}>Mật khẩu mới</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input type="text" readOnly value={resetStudentForm.password} style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font-mono)' }} />
-                  <button type="button" onClick={() => setResetStudentForm({ ...resetStudentForm, password: generatePassword() })} style={{ width: '38px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>🔄</button>
-                  <button type="button" onClick={() => copyPassword(resetStudentForm.password)} style={{ width: '38px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>📋</button>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-                <button type="button" onClick={() => setActiveModal(null)} className="btn-ghost" style={{ padding: '8px 16px' }}>Hủy</button>
-                <button type="submit" className="btn-primary" style={{ padding: '8px 18px' }}>Xác nhận reset</button>
+                <button type="submit" disabled={submitting} className="btn-primary" style={{ padding: '8px 18px' }}>{submitting ? 'Đang lưu...' : 'Xác nhận reset'}</button>
               </div>
             </form>
           </div>

@@ -58,6 +58,40 @@ router.post('/login', async (req, res) => {
 
 router.use(requireAuth('staff'));
 
+// GET /api/staff/notifications — thông báo broadcast từ admin (VD: quy trình mới)
+router.get('/notifications', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT id, tieu_de as title, noi_dung as message, loai as type,
+        DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') as time, created_at
+       FROM thong_bao WHERE doi_tuong = 'staff' ORDER BY created_at DESC LIMIT 30`
+    );
+    res.json({ notifications: rows });
+  } catch (err) {
+    console.error('Lỗi GET /api/staff/notifications:', err);
+    res.status(500).json({ error: 'Database query error' });
+  }
+});
+
+// GET /api/staff/process-flow — quy trình gần nhất mà admin đã gửi (nếu có)
+router.get('/process-flow', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT du_lieu, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') as sentAt
+       FROM thong_bao WHERE doi_tuong = 'staff' AND loai = 'quy_trinh' AND du_lieu IS NOT NULL
+       ORDER BY created_at DESC LIMIT 1`
+    );
+    if (rows.length === 0) return res.json({ flow: null });
+
+    let flow = null;
+    try { flow = JSON.parse(rows[0].du_lieu); } catch { flow = null; }
+    res.json({ flow, sentAt: rows[0].sentAt });
+  } catch (err) {
+    console.error('Lỗi GET /api/staff/process-flow:', err);
+    res.status(500).json({ error: 'Database query error' });
+  }
+});
+
 // GET /api/staff/profile — live name/role/avatar, so a long-lived session
 // self-corrects after HR data changes instead of showing the stale snapshot
 // captured at login time.

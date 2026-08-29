@@ -10,6 +10,7 @@ import CollaboratorsPage from './pages/CollaboratorsPage';
 import CompetencyTestPage from './pages/CompetencyTestPage';
 import SchoolsPage from './pages/SchoolsPage';
 import ConsultPage from './pages/ConsultPage';
+import ProcessFlowPage from './pages/ProcessFlowPage';
 import RevenuePage from './pages/RevenuePage';
 import AccountsPage from './pages/AccountsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -81,6 +82,7 @@ export default function App() {
         {currentPage === 'competency' && <CompetencyTestPage />}
         {currentPage === 'schools' && <SchoolsPage />}
         {currentPage === 'consult' && <ConsultPage />}
+        {currentPage === 'process-flow' && <ProcessFlowPage />}
         {currentPage === 'revenue' && <RevenuePage />}
         {currentPage === 'accounts' && <AccountsPage />}
         {currentPage === 'settings' && <SettingsPage />}

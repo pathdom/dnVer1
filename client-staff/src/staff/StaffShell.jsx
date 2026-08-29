@@ -4,6 +4,7 @@ import StaffStudentsPage from './StaffStudentsPage';
 import StaffApptPage from './StaffApptPage';
 import StaffTasksPage from './StaffTasksPage';
 import StaffCompetencyPage from './StaffCompetencyPage';
+import StaffProcessFlowPage from './StaffProcessFlowPage';
 import ChatWidget from '../chat-widget/ChatWidget';
 import ProfileMenu from '../components/ProfileMenu';
 import { apiFetch } from '../lib/apiFetch';
@@ -97,6 +98,10 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Chat nội bộ{chatUnread > 0 && <span className="count">{chatUnread}</span>}
           </button>
+          <button className={`nav-item ${currentPage === 'process-flow' ? 'active' : ''}`} onClick={() => setCurrentPage('process-flow')}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="6" height="6" rx="1.5"/><rect x="15" y="4" width="6" height="6" rx="1.5"/><rect x="9" y="14" width="6" height="6" rx="1.5"/><path d="M6 10v2a2 2 0 0 0 2 2h1M18 10v2a2 2 0 0 1-2 2h-1"/></svg>
+            Quy trình xử lý
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -125,6 +130,7 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
         {currentPage === 'tasks' && <StaffTasksPage />}
         {currentPage === 'competency' && <StaffCompetencyPage />}
         {currentPage === 'internalchat' && <ChatWidget profile={staffProfile} />}
+        {currentPage === 'process-flow' && <StaffProcessFlowPage />}
       </main>
     </div>
   );

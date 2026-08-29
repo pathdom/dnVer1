@@ -1684,4 +1684,28 @@ router.post('/accounts/:accountType/:accountId/toggle-lock', async (req, res) =>
   }
 });
 
+// POST /api/notifications — admin gửi thông báo broadcast (VD: quy trình mới) tới toàn bộ nhân viên/học viên
+router.post('/notifications', async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Chỉ quản trị viên mới có thể gửi thông báo' });
+
+    const { doiTuong, tieuDe, noiDung, loai, duLieu } = req.body;
+    if (!['admin', 'staff', 'student'].includes(doiTuong)) {
+      return res.status(400).json({ error: 'Đối tượng nhận không hợp lệ' });
+    }
+    if (!tieuDe || !tieuDe.trim()) {
+      return res.status(400).json({ error: 'Thiếu tiêu đề thông báo' });
+    }
+
+    await db.query(
+      'INSERT INTO thong_bao (doi_tuong, tieu_de, noi_dung, loai, du_lieu) VALUES (?, ?, ?, ?, ?)',
+      [doiTuong, tieuDe.trim(), noiDung || null, loai || null, duLieu ? JSON.stringify(duLieu) : null]
+    );
+    res.status(201).json({ success: true, message: 'Đã gửi thông báo' });
+  } catch (err) {
+    console.error('Lỗi gửi thông báo:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
 module.exports = router;

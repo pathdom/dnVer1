@@ -157,6 +157,16 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
           </svg>
           Lịch tư vấn{stats.weekAppointments > 0 && <span className="count">{stats.weekAppointments}</span>}
         </button>
+
+        <button
+          className={`nav-item ${currentPage === 'process-flow' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('process-flow')}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="6" height="6" rx="1.5"/><rect x="15" y="4" width="6" height="6" rx="1.5"/><rect x="9" y="14" width="6" height="6" rx="1.5"/><path d="M6 10v2a2 2 0 0 0 2 2h1M18 10v2a2 2 0 0 1-2 2h-1"/>
+          </svg>
+          Quy trình xử lý
+        </button>
       </nav>
 
       <div className="nav-label">Khác</div>
