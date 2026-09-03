@@ -243,7 +243,7 @@ export default function StaffStudentsPage() {
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13px', background: 'var(--bg)', color: 'var(--navy)', fontWeight: '500', cursor: 'pointer' }}
           >
             <option value="all">🌐 Tất cả quốc gia</option>
-            {quocGia.map(q => <option key={q.id} value={q.name}>✈️ {q.name}</option>)}
+            {quocGia.map(q => <option key={q.id} value={q.name}>{q.name}</option>)}
           </select>
         </div>
 
@@ -322,7 +322,7 @@ export default function StaffStudentsPage() {
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{s.phone || 'N/A'}</td>
                     <td>{s.hometown || 'Chưa cập nhật'}</td>
-                    <td style={{ fontWeight: '600' }}>✈️ {s.country}</td>
+                    <td style={{ fontWeight: '600' }}>{s.country}</td>
                     <td><span className={getStampClass(s.statusText)}>{s.statusText}</span></td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{s.ngayNhapHoc || 'Chưa xếp'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
@@ -408,7 +408,7 @@ export default function StaffStudentsPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia đến</label>
                   <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    {quocGia.map(q => <option key={q.id} value={q.id}>✈️ {q.name}</option>)}
+                    {quocGia.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                   </select>
                 </div>
                 <div>

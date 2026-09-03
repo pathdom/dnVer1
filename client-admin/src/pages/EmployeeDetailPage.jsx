@@ -148,7 +148,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
                     <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '10px 12px', fontWeight: '700', fontFamily: 'var(--font-mono)', color: 'var(--teal)' }}>{s.id}</td>
                       <td style={{ padding: '10px 12px', fontWeight: '600' }}>{s.name}</td>
-                      <td style={{ padding: '10px 12px' }}>✈️ {s.country}</td>
+                      <td style={{ padding: '10px 12px' }}>{s.country}</td>
                       <td style={{ padding: '10px 12px' }}><span className="stamp stamp-teal" style={{ fontSize: '10px' }}>{s.statusText}</span></td>
                       <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                         <button

@@ -43,15 +43,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1.5px dashed currentColor;
-  transform: rotate(-1.2deg);
+  padding: 6px 13px;
+  border-radius: 20px;
   white-space: nowrap;
 }
 .stamp-green { color: var(--green); background: var(--green-soft); }

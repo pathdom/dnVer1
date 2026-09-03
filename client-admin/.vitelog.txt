@@ -3,18 +3,7 @@
 > npx vite --port 5173
 
 
-  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1531[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1899[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
 [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
-[2m9:57:35 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Sidebar.jsx[22m
-[2m9:57:50 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Sidebar.jsx[22m
-[2m9:57:56 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
-[2m9:58:02 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
-[2m10:04:41 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m
-[2m10:04:49 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m
-[2m10:05:00 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m
-[2m10:05:10 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m
-[2m10:05:31 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m
-[2m10:05:42 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m
-[2m10:20:50 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProcessFlowPage.jsx[22m

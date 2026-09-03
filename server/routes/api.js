@@ -937,6 +937,147 @@ router.get('/schools', async (req, res) => {
   }
 });
 
+// GET /api/schools/:id (Xem chi tiết 1 dự án)
+router.get('/schools/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
+    const [rows] = await db.query(`
+      SELECT
+        d.id,
+        d.ma_du_an as maDuAn,
+        d.ten_du_an as name,
+        d.quoc_gia_id as quocGiaId,
+        qg.ten_quoc_gia as country,
+        IFNULL(DATE_FORMAT(d.ngay_bat_dau, '%d/%m/%Y'), '01/01/2026') as startDate,
+        DATE_FORMAT(d.ngay_bat_dau, '%Y-%m-%d') as startDateRaw,
+        IFNULL(DATE_FORMAT(d.ngay_ket_thuc, '%d/%m/%Y'), '31/12/2026') as endDate,
+        DATE_FORMAT(d.ngay_ket_thuc, '%Y-%m-%d') as endDateRaw,
+        d.chi_tieu_so_luong as quota,
+        d.ngan_sach as budget,
+        d.nguoi_quan_ly_id as managerId,
+        nv.ho_ten as managerName,
+        d.trang_thai as statusText,
+        IFNULL(DATE_FORMAT(d.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
+      FROM du_an d
+      LEFT JOIN nhan_vien nv ON nv.id = d.nguoi_quan_ly_id
+      LEFT JOIN quoc_gia qg ON qg.id = d.quoc_gia_id
+      WHERE d.ma_du_an = ? ${isNumericId ? 'OR d.id = ?' : ''}
+    `, isNumericId ? [targetId, targetId] : [targetId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy dự án' });
+    }
+
+    const s = rows[0];
+    res.json({ ...s, budgetFormatted: formatVND(s.budget) });
+  } catch (err) {
+    console.error('Lỗi GET /api/schools/:id:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/schools (Thêm dự án)
+router.post('/schools', async (req, res) => {
+  try {
+    const { name, quocGiaId, startDate, endDate, quota, budget, managerId, statusText } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Tên dự án là bắt buộc' });
+    }
+
+    const [result] = await db.query(`
+      INSERT INTO du_an (ma_du_an, ten_du_an, quoc_gia_id, ngay_bat_dau, ngay_ket_thuc, chi_tieu_so_luong, ngan_sach, nguoi_quan_ly_id, trang_thai, created_at)
+      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    `, [
+      name,
+      quocGiaId || null,
+      startDate || null,
+      endDate || null,
+      quota || 0,
+      budget || 0,
+      managerId || null,
+      statusText || 'Lên kế hoạch'
+    ]);
+
+    const ma_du_an = 'DA' + String(result.insertId).padStart(3, '0');
+    await db.query('UPDATE du_an SET ma_du_an = ? WHERE id = ?', [ma_du_an, result.insertId]);
+
+    res.status(201).json({
+      success: true,
+      message: `Đã thêm dự án ${name} (${ma_du_an}) vào CSDL!`,
+      insertedId: result.insertId,
+      ma_du_an
+    });
+  } catch (err) {
+    console.error('Lỗi thêm dự án:', err);
+    res.status(500).json({ error: 'Không thể thêm dự án: ' + err.message });
+  }
+});
+
+// PUT /api/schools/:id (Sửa dự án)
+router.put('/schools/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
+    const { name, quocGiaId, startDate, endDate, quota, budget, managerId, statusText } = req.body;
+
+    const updateParams = [
+      name,
+      quocGiaId || null,
+      startDate || null,
+      endDate || null,
+      quota || 0,
+      budget || 0,
+      managerId || null,
+      statusText || 'Lên kế hoạch'
+    ];
+
+    const [result] = await db.query(`
+      UPDATE du_an
+      SET
+        ten_du_an = ?,
+        quoc_gia_id = ?,
+        ngay_bat_dau = ?,
+        ngay_ket_thuc = ?,
+        chi_tieu_so_luong = ?,
+        ngan_sach = ?,
+        nguoi_quan_ly_id = ?,
+        trang_thai = ?
+      WHERE ma_du_an = ? ${isNumericId ? 'OR id = ?' : ''}
+    `, isNumericId ? [...updateParams, targetId, targetId] : [...updateParams, targetId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy dự án để cập nhật' });
+    }
+
+    res.json({ success: true, message: `Đã cập nhật thành công dự án ${name}!` });
+  } catch (err) {
+    console.error('Lỗi sửa dự án:', err);
+    res.status(500).json({ error: 'Không thể cập nhật dự án: ' + err.message });
+  }
+});
+
+// DELETE /api/schools/:id (Xóa dự án)
+router.delete('/schools/:id', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
+    const [result] = await db.query(
+      `DELETE FROM du_an WHERE ma_du_an = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy dự án để xóa' });
+    }
+
+    res.json({ success: true, message: 'Đã xóa dự án khỏi CSDL' });
+  } catch (err) {
+    console.error('Lỗi xóa dự án:', err);
+    res.status(500).json({ error: 'Không thể xóa dự án: ' + err.message });
+  }
+});
+
 // GET /api/leads
 // GET /api/customers (Quản lý khách hàng)
 router.get('/customers', async (req, res) => {
@@ -1355,6 +1496,176 @@ router.delete('/collaborators/:id', async (req, res) => {
   } catch (err) {
     console.error('Lỗi xóa cộng tác viên:', err);
     res.status(500).json({ error: 'Không thể xóa cộng tác viên: ' + err.message });
+  }
+});
+
+// ---- Đề thi (bo_de_thi / cau_hoi / dap_an) — đề trắc nghiệm thật, chấm tự động qua đáp án đúng ----
+
+// GET /api/exams — danh sách đề thi kèm số câu hỏi và số lượt làm
+router.get('/exams', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT
+        d.id, d.ma_bo_de as maBoDe, d.ten_bo_de as name,
+        d.bo_phan_id as boPhanId, bp.ten_bo_phan as department,
+        d.thoi_gian_lam_bai_phut as duration, d.diem_chuan_dat as passScore,
+        (SELECT COUNT(*) FROM cau_hoi c WHERE c.bo_de_thi_id = d.id) as questionCount,
+        (SELECT COUNT(*) FROM test_nang_luc t WHERE t.bo_de_thi_id = d.id) as attemptCount,
+        DATE_FORMAT(d.created_at, '%d/%m/%Y') as createdAt
+      FROM bo_de_thi d
+      LEFT JOIN bo_phan bp ON bp.id = d.bo_phan_id
+      ORDER BY d.id DESC
+    `);
+    res.json({ exams: rows });
+  } catch (err) {
+    console.error('Lỗi GET /api/exams:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// GET /api/exams/:id — chi tiết đề thi kèm câu hỏi + đáp án (để sửa)
+router.get('/exams/:id', async (req, res) => {
+  try {
+    const [examRows] = await db.query(`
+      SELECT d.id, d.ma_bo_de as maBoDe, d.ten_bo_de as name, d.bo_phan_id as boPhanId,
+        d.thoi_gian_lam_bai_phut as duration, d.diem_chuan_dat as passScore
+      FROM bo_de_thi d WHERE d.id = ?
+    `, [req.params.id]);
+    if (examRows.length === 0) return res.status(404).json({ error: 'Không tìm thấy đề thi' });
+
+    const [questions] = await db.query(
+      'SELECT id, noi_dung_cau_hoi as content FROM cau_hoi WHERE bo_de_thi_id = ? ORDER BY id',
+      [req.params.id]
+    );
+    const questionIds = questions.map(q => q.id);
+    let answers = [];
+    if (questionIds.length > 0) {
+      const [answerRows] = await db.query(
+        `SELECT id, cau_hoi_id as questionId, noi_dung_dap_an as content, la_dap_an_dung as isCorrect
+         FROM dap_an WHERE cau_hoi_id IN (?) ORDER BY id`,
+        [questionIds]
+      );
+      answers = answerRows;
+    }
+
+    const questions_ = questions.map(q => ({
+      ...q,
+      answers: answers.filter(a => a.questionId === q.id).map(a => ({ ...a, isCorrect: !!a.isCorrect }))
+    }));
+
+    res.json({ ...examRows[0], questions: questions_ });
+  } catch (err) {
+    console.error('Lỗi GET /api/exams/:id:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+function validateExamPayload(body) {
+  const { tenDe, questions } = body;
+  if (!tenDe || !tenDe.trim()) return 'Tên đề thi là bắt buộc';
+  if (!Array.isArray(questions) || questions.length === 0) return 'Đề thi cần ít nhất 1 câu hỏi';
+  for (const q of questions) {
+    if (!q.content || !q.content.trim()) return 'Vui lòng nhập nội dung cho tất cả câu hỏi';
+    if (!Array.isArray(q.answers) || q.answers.length < 2) return 'Mỗi câu hỏi cần ít nhất 2 đáp án';
+    if (q.answers.some(a => !a.content || !a.content.trim())) return 'Vui lòng nhập nội dung cho tất cả đáp án';
+    if (!q.answers.some(a => a.isCorrect)) return 'Mỗi câu hỏi cần đánh dấu 1 đáp án đúng';
+  }
+  return null;
+}
+
+// POST /api/exams — tạo đề thi mới (kèm toàn bộ câu hỏi + đáp án)
+router.post('/exams', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { tenDe, boPhanId, duration, passScore, questions } = req.body;
+    const validationError = validateExamPayload(req.body);
+    if (validationError) { conn.release(); return res.status(400).json({ error: validationError }); }
+
+    await conn.beginTransaction();
+    const [result] = await conn.query(
+      'INSERT INTO bo_de_thi (ma_bo_de, ten_bo_de, bo_phan_id, thoi_gian_lam_bai_phut, diem_chuan_dat) VALUES (?, ?, ?, ?, ?)',
+      ['TEMP', tenDe.trim(), boPhanId || null, duration || 45, passScore || 8]
+    );
+    const examId = result.insertId;
+    const maBoDe = 'DE' + String(examId).padStart(3, '0');
+    await conn.query('UPDATE bo_de_thi SET ma_bo_de = ? WHERE id = ?', [maBoDe, examId]);
+
+    for (const q of questions) {
+      const [qResult] = await conn.query(
+        'INSERT INTO cau_hoi (bo_de_thi_id, noi_dung_cau_hoi) VALUES (?, ?)',
+        [examId, q.content.trim()]
+      );
+      for (const a of q.answers) {
+        await conn.query(
+          'INSERT INTO dap_an (cau_hoi_id, noi_dung_dap_an, la_dap_an_dung) VALUES (?, ?, ?)',
+          [qResult.insertId, a.content.trim(), a.isCorrect ? 1 : 0]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.status(201).json({ success: true, message: `Đã tạo đề thi "${tenDe}" (${maBoDe}) với ${questions.length} câu hỏi!`, insertedId: examId });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi tạo đề thi:', err);
+    res.status(500).json({ error: 'Không thể tạo đề thi: ' + err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+// PUT /api/exams/:id — sửa đề thi (thay toàn bộ câu hỏi + đáp án)
+router.put('/exams/:id', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { tenDe, boPhanId, duration, passScore, questions } = req.body;
+    const validationError = validateExamPayload(req.body);
+    if (validationError) { conn.release(); return res.status(400).json({ error: validationError }); }
+
+    const examId = req.params.id;
+    const [existing] = await conn.query('SELECT id FROM bo_de_thi WHERE id = ?', [examId]);
+    if (existing.length === 0) { conn.release(); return res.status(404).json({ error: 'Không tìm thấy đề thi' }); }
+
+    await conn.beginTransaction();
+    await conn.query(
+      'UPDATE bo_de_thi SET ten_bo_de = ?, bo_phan_id = ?, thoi_gian_lam_bai_phut = ?, diem_chuan_dat = ? WHERE id = ?',
+      [tenDe.trim(), boPhanId || null, duration || 45, passScore || 8, examId]
+    );
+    await conn.query('DELETE FROM cau_hoi WHERE bo_de_thi_id = ?', [examId]);
+
+    for (const q of questions) {
+      const [qResult] = await conn.query(
+        'INSERT INTO cau_hoi (bo_de_thi_id, noi_dung_cau_hoi) VALUES (?, ?)',
+        [examId, q.content.trim()]
+      );
+      for (const a of q.answers) {
+        await conn.query(
+          'INSERT INTO dap_an (cau_hoi_id, noi_dung_dap_an, la_dap_an_dung) VALUES (?, ?, ?)',
+          [qResult.insertId, a.content.trim(), a.isCorrect ? 1 : 0]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({ success: true, message: `Đã cập nhật đề thi "${tenDe}"!` });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Lỗi sửa đề thi:', err);
+    res.status(500).json({ error: 'Không thể cập nhật đề thi: ' + err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+// DELETE /api/exams/:id
+router.delete('/exams/:id', async (req, res) => {
+  try {
+    const [result] = await db.query('DELETE FROM bo_de_thi WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy đề thi để xóa' });
+    res.json({ success: true, message: 'Đã xóa đề thi khỏi CSDL' });
+  } catch (err) {
+    console.error('Lỗi xóa đề thi:', err);
+    res.status(500).json({ error: 'Không thể xóa đề thi: ' + err.message });
   }
 });
 

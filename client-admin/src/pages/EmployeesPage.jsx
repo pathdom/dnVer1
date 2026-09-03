@@ -139,15 +139,6 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
   };
 
   // Tag styling cho phòng ban
-  const getDeptTagStyle = (dept = '') => {
-    if (dept.includes('Marketing')) return { background: 'var(--gold-soft)', color: 'var(--gold)' };
-    if (dept.includes('Đối ngoại')) return { background: 'var(--coral-soft)', color: 'var(--coral)' };
-    if (dept.includes('Hồ sơ')) return { background: '#E7EEFC', color: '#3B6FD1' };
-    if (dept.includes('Đào tạo')) return { background: 'var(--green-soft)', color: 'var(--green)' };
-    if (dept.includes('Hành chính')) return { background: '#F1E9FB', color: '#7C3AED' };
-    return { background: 'var(--teal-soft)', color: 'var(--teal)' };
-  };
-
   const removeAccents = (str) => {
     return (str || '')
       .normalize('NFD')
@@ -336,11 +327,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)' }}>{emp.phone || 'N/A'}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <span className="dept-tag" style={{ ...getDeptTagStyle(emp.department), padding: '2px 8px', borderRadius: '6px', fontSize: '10.5px', fontWeight: '700', display: 'inline-block' }}>
-                        {emp.department || 'Chưa xác định'}
-                      </span>
-                    </td>
+                    <td style={{ padding: '14px 16px', fontWeight: '600', color: 'var(--navy)' }}>{emp.department || 'Chưa xác định'}</td>
                     <td style={{ padding: '14px 16px', fontWeight: '600', color: 'var(--navy)' }}>{emp.role || 'Nhân viên'}</td>
                     <td style={{ padding: '14px 16px', fontWeight: '500' }}>{emp.workType || 'Full-time'}</td>
                     <td style={{ padding: '14px 16px' }}>

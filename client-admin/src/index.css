@@ -402,16 +402,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1.5px dashed currentColor;
-  transform: rotate(-1.4deg);
   white-space: nowrap;
+  padding: 6px 13px;
+  border-radius: 20px;
 }
 .stamp-visa { color: var(--green); background: var(--green-soft); }
 .stamp-processing { color: var(--gold); background: var(--gold-soft); }

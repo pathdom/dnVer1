@@ -239,7 +239,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '13px', background: 'var(--bg)', color: 'var(--navy)', fontWeight: '500', cursor: 'pointer' }}
           >
             <option value="all">🌐 Tất cả quốc gia</option>
-            {quocGia.map(q => <option key={q.id} value={q.name}>✈️ {q.name}</option>)}
+            {quocGia.map(q => <option key={q.id} value={q.name}>{q.name}</option>)}
           </select>
         </div>
 
@@ -324,7 +324,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                     </td>
                     <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)' }}>{s.phone || 'N/A'}</td>
                     <td style={{ padding: '14px 16px' }}>{s.hometown || 'Chưa cập nhật'}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: '600' }}>✈️ {s.country}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: '600' }}>{s.country}</td>
                     <td style={{ padding: '14px 16px' }}>
                       <span className={getStampClass(s.statusText)}>{s.statusText}</span>
                     </td>
@@ -407,7 +407,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia đến</label>
                   <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    {quocGia.map(q => <option key={q.id} value={q.id}>✈️ {q.name}</option>)}
+                    {quocGia.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                   </select>
                 </div>
               </div>

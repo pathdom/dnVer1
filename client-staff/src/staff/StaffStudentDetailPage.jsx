@@ -107,7 +107,7 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
               <span>📋 Mã {student.id}</span>
               <span>📞 {student.phone || 'Chưa có SĐT'}</span>
               <span>✉️ {student.email || 'Chưa có email'}</span>
-              <span>✈️ Du học {student.country || 'Nhật Bản'}</span>
+              <span>Du học {student.country || 'Nhật Bản'}</span>
             </div>
           </div>
         </div>
@@ -132,10 +132,10 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
 
           <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>✈️ Hồ sơ du học & Học phí CSDL</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>Hồ sơ du học & Học phí CSDL</h3>
             </div>
             <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13.5px' }}>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Quốc gia đến</div><div style={{ fontWeight: '700', color: 'var(--teal)' }}>✈️ {student.country}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Quốc gia đến</div><div style={{ fontWeight: '700', color: 'var(--teal)' }}>{student.country}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Trạng thái hồ sơ</div><div style={{ fontWeight: '600' }}>{student.statusText}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Tiền đã đóng</div><div style={{ fontWeight: '700', color: 'var(--green)', fontSize: '15px' }}>{student.tienDaDongFormatted || '0 ₫'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Tổng học phí</div><div style={{ fontWeight: '700', color: 'var(--navy)', fontSize: '15px' }}>{student.tongTienFormatted || '0 ₫'}</div></div>

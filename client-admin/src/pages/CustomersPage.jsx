@@ -313,7 +313,7 @@ export default function CustomersPage() {
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)' }}>{c.phone || 'N/A'}</td>
-                    <td style={{ padding: '14px 16px', fontWeight: '600' }}>✈️ {c.country}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: '600' }}>{c.country}</td>
                     <td style={{ padding: '14px 16px' }}>{c.staffName}</td>
                     <td style={{ padding: '14px 16px' }}>
                       <span className={getStampClass(c.statusText)}>{c.statusText}</span>
@@ -379,7 +379,7 @@ export default function CustomersPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia quan tâm</label>
                   <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
-                    {quocGia.map(q => <option key={q.id} value={q.id}>✈️ {q.name}</option>)}
+                    {quocGia.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                   </select>
                 </div>
                 <div>
