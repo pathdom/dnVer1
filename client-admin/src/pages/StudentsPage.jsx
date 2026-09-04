@@ -17,6 +17,16 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  useEffect(() => {
+    const mainEl = document.querySelector('.main');
+    document.body.style.overflow = isModalOpen ? 'hidden' : '';
+    if (mainEl) mainEl.style.overflow = isModalOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+      if (mainEl) mainEl.style.overflow = '';
+    };
+  }, [isModalOpen]);
+
   const emptyForm = () => ({
     name: '',
     email: '',
@@ -377,36 +387,36 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
       {/* MODAL THÊM / SỬA HỌC VIÊN */}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 20, 35, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', margin: 'auto' }}>
+          <div className="modal-scroll" style={{ background: 'var(--surface)', borderRadius: '26px', width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', margin: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '600', color: 'var(--navy)' }}>
                 {editingStudent ? `✏️ Chỉnh sửa học viên ${editingStudent.id}` : '➕ Thêm học viên mới'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'var(--bg)', border: 'none', width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'var(--bg)', border: 'none', width: '32px', height: '32px', borderRadius: '12px', cursor: 'pointer', fontSize: '16px' }}>✕</button>
             </div>
 
             <form onSubmit={handleFormSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Họ và tên *</label>
-                  <input required name="name" value={formData.name} onChange={handleInputChange} placeholder="VD: Nguyễn Văn Nam" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <input required name="name" value={formData.name} onChange={handleInputChange} placeholder="VD: Nguyễn Văn Nam" style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Số điện thoại</label>
-                  <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0912345678" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0912345678" style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quê quán</label>
-                  <select name="tinhThanhId" value={formData.tinhThanhId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                  <select name="tinhThanhId" value={formData.tinhThanhId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
                     {tinhThanh.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Quốc gia đến</label>
-                  <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                  <select name="quocGiaId" value={formData.quocGiaId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
                     {quocGia.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                   </select>
                 </div>
@@ -415,7 +425,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Trạng thái hồ sơ</label>
-                  <select name="statusText" value={formData.statusText} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                  <select name="statusText" value={formData.statusText} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
                     <option value="Đang học tiếng">Đang học tiếng</option>
                     <option value="Mới tiếp nhận">Mới tiếp nhận</option>
                     <option value="Đang xử lý">Đang xử lý</option>
@@ -427,18 +437,18 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Ngày nhập học</label>
-                  <input type="date" name="ngayNhapHoc" value={formData.ngayNhapHoc} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <input type="date" name="ngayNhapHoc" value={formData.ngayNhapHoc} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tiền đã đóng (VNĐ)</label>
-                  <input type="number" name="tienDaDong" value={formData.tienDaDong} onChange={handleInputChange} placeholder="30000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <input type="number" name="tienDaDong" value={formData.tienDaDong} onChange={handleInputChange} placeholder="30000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tổng học phí (VNĐ)</label>
-                  <input type="number" name="tongTien" value={formData.tongTien} onChange={handleInputChange} placeholder="120000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                  <input type="number" name="tongTien" value={formData.tongTien} onChange={handleInputChange} placeholder="120000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
                 </div>
               </div>
 

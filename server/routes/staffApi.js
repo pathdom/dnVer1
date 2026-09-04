@@ -20,8 +20,8 @@ router.post('/login', async (req, res) => {
       JOIN tai_khoan_nhan_vien tk ON tk.id = nv.tai_khoan_nhan_vien_id
       LEFT JOIN chuc_danh cd ON cd.id = nv.chuc_danh_id
       LEFT JOIN bo_phan bp ON bp.id = nv.bo_phan_id
-      WHERE nv.email = ?
-    `, [email]);
+      WHERE nv.email = ? OR tk.username = ?
+    `, [email, email]);
     if (staffs.length === 0) {
       return res.status(401).json({ success: false, error: 'Sai email hoặc mật khẩu' });
     }
