@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/uploads/:match*",
-            "destination": "https://ht.aladdinvietnam.com/uploads/:match*"
+            "destination": "https://server.aladdinvietnam.com/uploads/:match*"
         }
     ]
 }
