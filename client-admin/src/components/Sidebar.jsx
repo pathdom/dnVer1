@@ -51,12 +51,12 @@ export default function Sidebar({ currentPage, setCurrentPage, profile, onLogout
     <aside className="sidebar">
       <div className="brand">
         {companyLogo ? (
-          <img src={companyLogo} alt="Company Logo" className="brand-mark" style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }} />
+          <img src={companyLogo} alt="Company Logo" className="brand-mark" style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(24,38,68,0.15)' }} />
         ) : (
           <svg className="brand-mark" width="38" height="38" viewBox="0 0 38 38" fill="none">
             <path d="M4 26C4 26 10 14 19 14C28 14 34 26 34 26" stroke="#4FC3B4" strokeWidth="2.4" strokeLinecap="round"/>
             <circle cx="19" cy="14" r="3.2" fill="#DE9F3B"/>
-            <path d="M4 30H34" stroke="rgba(255,255,255,0.25)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
+            <path d="M4 30H34" stroke="rgba(24,38,68,0.22)" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.4 5"/>
           </svg>
         )}
         <div className="brand-text">
