@@ -11,7 +11,7 @@
   --cw-accent:#2A9D8F; --cw-accent-soft:rgba(42,157,143,.22); --cw-accent-line:#2A9D8F;
   --cw-me:rgba(42,157,143,.22); --cw-them:#1E293B; --cw-ok:#3FAE7A; --cw-danger:#E4634B;
   --cw-r-sm:8px; --cw-r:12px; --cw-r-lg:18px;
-  font: 400 15px/1.55 'Inter', system-ui, sans-serif;
+  font: 400 15px/1.55 'Roboto', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 .aladdin-chat-widget[data-theme="light"]{

@@ -6,7 +6,9 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import CustomersPage from './pages/CustomersPage';
+import CustomerDetailPage from './pages/CustomerDetailPage';
 import CollaboratorsPage from './pages/CollaboratorsPage';
+import CollaboratorDetailPage from './pages/CollaboratorDetailPage';
 import CompetencyTestPage from './pages/CompetencyTestPage';
 import SchoolsPage from './pages/SchoolsPage';
 import ConsultPage from './pages/ConsultPage';
@@ -29,6 +31,8 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('overview');
   const [selectedStudentId, setSelectedStudentId] = useState('HV001');
   const [selectedEmpId, setSelectedEmpId] = useState('NV001');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCollaborator, setSelectedCollaborator] = useState(null);
   const [adminUser, setAdminUser] = useState(readStoredAdmin);
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('aladdin_token'));
 
@@ -77,8 +81,18 @@ export default function App() {
         {currentPage === 'employee-detail' && (
           <EmployeeDetailPage empId={selectedEmpId} setCurrentPage={setCurrentPage} setSelectedStudentId={setSelectedStudentId} />
         )}
-        {currentPage === 'customers' && <CustomersPage />}
-        {currentPage === 'collaborators' && <CollaboratorsPage />}
+        {currentPage === 'customers' && (
+          <CustomersPage setCurrentPage={setCurrentPage} setSelectedCustomer={setSelectedCustomer} />
+        )}
+        {currentPage === 'customer-detail' && (
+          <CustomerDetailPage customer={selectedCustomer} setCurrentPage={setCurrentPage} />
+        )}
+        {currentPage === 'collaborators' && (
+          <CollaboratorsPage setCurrentPage={setCurrentPage} setSelectedCollaborator={setSelectedCollaborator} />
+        )}
+        {currentPage === 'collaborator-detail' && (
+          <CollaboratorDetailPage collaborator={selectedCollaborator} setCurrentPage={setCurrentPage} />
+        )}
         {currentPage === 'competency' && <CompetencyTestPage />}
         {currentPage === 'schools' && <SchoolsPage />}
         {currentPage === 'consult' && <ConsultPage />}

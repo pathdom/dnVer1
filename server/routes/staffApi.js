@@ -204,4 +204,147 @@ router.get('/competency-results', async (req, res) => {
   }
 });
 
+// ---- Đề thi (bo_de_thi/cau_hoi/dap_an) — nhân viên xem & làm đề thuộc phòng ban mình ----
+
+// GET /api/staff/exams — danh sách đề thi của phòng ban mình, kèm trạng thái đã làm
+router.get('/exams', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT d.id, d.ma_bo_de as maBoDe, d.ten_bo_de as name,
+        d.thoi_gian_lam_bai_phut as duration, d.diem_chuan_dat as passScore,
+        (SELECT COUNT(*) FROM cau_hoi c WHERE c.bo_de_thi_id = d.id) as questionCount,
+        t.diem_so as score, t.ket_qua as result, DATE_FORMAT(t.ngay_lam_test, '%d/%m/%Y') as takenAt
+      FROM bo_de_thi d
+      JOIN nhan_vien nv ON nv.bo_phan_id = d.bo_phan_id
+      LEFT JOIN test_nang_luc t ON t.bo_de_thi_id = d.id AND t.nhan_vien_id = nv.id
+      WHERE nv.id = ?
+      ORDER BY d.id DESC
+    `, [req.user.id]);
+
+    res.json({
+      exams: rows.map(r => ({
+        id: r.id,
+        maBoDe: r.maBoDe,
+        name: r.name,
+        duration: r.duration,
+        passScore: Number(r.passScore),
+        questionCount: r.questionCount,
+        completed: r.score !== null,
+        score: r.score !== null ? Number(r.score) : null,
+        result: r.result,
+        takenAt: r.takenAt
+      }))
+    });
+  } catch (err) {
+    console.error('Lỗi GET /api/staff/exams:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// GET /api/staff/exams/:id — câu hỏi để làm bài (ẩn đáp án đúng)
+router.get('/exams/:id', async (req, res) => {
+  try {
+    const [examRows] = await db.query(
+      'SELECT id, ten_bo_de as name, bo_phan_id as boPhanId, thoi_gian_lam_bai_phut as duration FROM bo_de_thi WHERE id = ?',
+      [req.params.id]
+    );
+    if (examRows.length === 0) return res.status(404).json({ error: 'Không tìm thấy đề thi' });
+
+    const [meRows] = await db.query('SELECT bo_phan_id as boPhanId FROM nhan_vien WHERE id = ?', [req.user.id]);
+    if (!meRows[0] || Number(meRows[0].boPhanId) !== Number(examRows[0].boPhanId)) {
+      return res.status(403).json({ error: 'Đề thi này không thuộc phòng ban của bạn' });
+    }
+
+    const [existing] = await db.query(
+      'SELECT id FROM test_nang_luc WHERE nhan_vien_id = ? AND bo_de_thi_id = ?',
+      [req.user.id, req.params.id]
+    );
+    if (existing.length > 0) return res.status(409).json({ error: 'Bạn đã làm đề thi này rồi' });
+
+    const [questions] = await db.query(
+      'SELECT id, noi_dung_cau_hoi as content FROM cau_hoi WHERE bo_de_thi_id = ? ORDER BY id',
+      [req.params.id]
+    );
+    const questionIds = questions.map(q => q.id);
+    let answers = [];
+    if (questionIds.length > 0) {
+      const [answerRows] = await db.query(
+        'SELECT id, cau_hoi_id as questionId, noi_dung_dap_an as content FROM dap_an WHERE cau_hoi_id IN (?) ORDER BY id',
+        [questionIds]
+      );
+      answers = answerRows;
+    }
+
+    res.json({
+      id: examRows[0].id,
+      name: examRows[0].name,
+      duration: examRows[0].duration,
+      questions: questions.map(q => ({ ...q, answers: answers.filter(a => a.questionId === q.id) }))
+    });
+  } catch (err) {
+    console.error('Lỗi GET /api/staff/exams/:id:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// POST /api/staff/exams/:id/submit — nộp bài, server tự chấm điểm (không tin điểm từ client)
+router.post('/exams/:id/submit', async (req, res) => {
+  try {
+    const examId = req.params.id;
+    const answers = req.body.answers || {}; // { [questionId]: answerId }
+
+    const [examRows] = await db.query(
+      'SELECT ten_bo_de as name, bo_phan_id as boPhanId, diem_chuan_dat as passScore FROM bo_de_thi WHERE id = ?',
+      [examId]
+    );
+    if (examRows.length === 0) return res.status(404).json({ error: 'Không tìm thấy đề thi' });
+
+    const [meRows] = await db.query('SELECT bo_phan_id as boPhanId FROM nhan_vien WHERE id = ?', [req.user.id]);
+    if (!meRows[0] || Number(meRows[0].boPhanId) !== Number(examRows[0].boPhanId)) {
+      return res.status(403).json({ error: 'Đề thi này không thuộc phòng ban của bạn' });
+    }
+
+    const [existing] = await db.query(
+      'SELECT id FROM test_nang_luc WHERE nhan_vien_id = ? AND bo_de_thi_id = ?',
+      [req.user.id, examId]
+    );
+    if (existing.length > 0) return res.status(409).json({ error: 'Bạn đã nộp bài đề thi này rồi' });
+
+    const [questions] = await db.query('SELECT id FROM cau_hoi WHERE bo_de_thi_id = ?', [examId]);
+    const questionIds = questions.map(q => q.id);
+    let correctAnswers = [];
+    if (questionIds.length > 0) {
+      const [rows] = await db.query(
+        'SELECT id, cau_hoi_id as questionId FROM dap_an WHERE cau_hoi_id IN (?) AND la_dap_an_dung = 1',
+        [questionIds]
+      );
+      correctAnswers = rows;
+    }
+
+    let soCauDung = 0;
+    for (const q of questions) {
+      const correct = correctAnswers.find(a => a.questionId === q.id);
+      const chosen = answers[q.id];
+      if (correct && chosen && Number(chosen) === correct.id) soCauDung++;
+    }
+
+    const tongCau = questions.length;
+    const diemSo = tongCau > 0 ? Math.round((soCauDung / tongCau) * 10 * 10) / 10 : 0;
+    const ketQua = diemSo >= Number(examRows[0].passScore) ? 'Đạt' : 'Không đạt';
+
+    await db.query(
+      'INSERT INTO test_nang_luc (nhan_vien_id, bo_de_thi_id, ten_bai_test, ngay_lam_test, diem_so, ket_qua) VALUES (?, ?, ?, CURDATE(), ?, ?)',
+      [req.user.id, examId, examRows[0].name, diemSo, ketQua]
+    );
+
+    res.json({ success: true, soCauDung, tongCau, diemSo, ketQua });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Bạn đã nộp bài đề thi này rồi' });
+    }
+    console.error('Lỗi nộp bài thi:', err);
+    res.status(500).json({ error: 'Không thể nộp bài: ' + err.message });
+  }
+});
+
 module.exports = router;

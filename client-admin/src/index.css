@@ -2,7 +2,7 @@
   --navy: #182644;
   --navy-2: #223258;
   --navy-3: #2b3d68;
-  --bg: #F4F5FA;
+  --bg: #e0f2fe;
   --surface: #FFFFFF;
   --teal: #2A9D8F;
   --teal-soft: #E4F3F1;
@@ -21,7 +21,7 @@
   --radius-sm: 8px;
   --shadow: 0 4px 18px rgba(24,38,68,0.06);
   --font-display: 'Fraunces', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Roboto', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 
@@ -420,6 +420,30 @@ body {
 .stamp-hold { color: var(--coral); background: var(--coral-soft); }
 .stamp-active { color: var(--green); background: var(--green-soft); }
 .stamp-leave { color: var(--text-faint); background: #EFF0F5; }
+
+/* ===== DETAIL TABS ===== */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.detail-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s ease, border-color .15s ease;
+}
+.detail-tab:hover { color: var(--teal); }
+.detail-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
 
 /* ===== DESTINATION MINI BARS ===== */
 .dest-list { padding: 8px 20px 18px 20px; display: flex; flex-direction: column; gap: 13px; }
@@ -955,7 +979,7 @@ body {
    ===================================================================== */
 html.dark-theme, body.dark-theme {
   --navy: #0F172A;
-  --bg: #0B0F19;
+  --bg: #e0f2fe;
   --surface: #1E293B;
   --text: #F8FAFC;
   --text-soft: #94A3B8;
@@ -969,13 +993,17 @@ html.dark-theme, body.dark-theme {
   --blue-soft: rgba(59, 111, 209, 0.22);
 }
 
-html.dark-theme .page-heading h1,
 html.dark-theme .stat-value,
 html.dark-theme .panel-head h3,
 html.dark-theme .cell-name,
 html.dark-theme .action-card-title,
-html.dark-theme .modal-head h3 {
+html.dark-theme .modal-head h3,
+html.dark-theme .profile-name {
   color: #F8FAFC !important;
+}
+
+html.dark-theme .page-heading p {
+  color: #475569 !important;
 }
 
 html.dark-theme .table th {

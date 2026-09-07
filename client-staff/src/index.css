@@ -12,7 +12,7 @@
   --green-soft: #E4F5EC;
   --blue: #3B6FD1;
   --blue-soft: #E7EEFC;
-  --bg: #F8FAFA;
+  --bg: #e0f2fe;
   --surface: #FFFFFF;
   --text: #1E2536;
   --text-soft: #6B7280;
@@ -22,7 +22,7 @@
   --radius-md: 12px;
   --shadow: 0 4px 16px rgba(24,38,68,0.05);
   --font-display: 'Fraunces', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Roboto', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 

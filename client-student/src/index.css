@@ -1,7 +1,7 @@
 :root {
   --navy: #182644;
   --navy-2: #223258;
-  --bg: #F4F5FA;
+  --bg: #e0f2fe;
   --surface: #FFFFFF;
   --teal: #2A9D8F;
   --teal-soft: #E4F3F1;
@@ -20,7 +20,7 @@
   --radius-md: 14px;
   --shadow: 0 4px 18px rgba(24,38,68,0.06);
   --font-display: 'Fraunces', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Roboto', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 

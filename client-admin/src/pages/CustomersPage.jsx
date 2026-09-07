@@ -22,7 +22,7 @@ function initialsOf(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function CustomersPage() {
+export default function CustomersPage({ setCurrentPage, setSelectedCustomer }) {
   const [customers, setCustomers] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [quocGia, setQuocGia] = useState([]);
@@ -326,6 +326,14 @@ export default function CustomersPage() {
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <button
+                          className="row-action"
+                          title="Xem chi tiết"
+                          onClick={() => { if (setSelectedCustomer) setSelectedCustomer(c); if (setCurrentPage) setCurrentPage('customer-detail'); }}
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px', cursor: 'pointer' }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
                         <button
                           className="row-action"
                           title="Chỉnh sửa thông tin"
