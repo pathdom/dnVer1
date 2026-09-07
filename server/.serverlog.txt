@@ -1,5 +1,4 @@
 ==================================================
 🟢 Express Server đang chạy tại: http://localhost:5000
 ==================================================
-⚠️ Cảnh báo kết nối MySQL: getaddrinfo ENOTFOUND 1Panel-mysql-mNAF
-ℹ️ Hệ thống backend sẽ chạy với chế độ dữ liệu mẫu linh hoạt (mock fallback).
+✅ Kết nối MySQL thành công tới database [quan_ly_trung_tam]!
