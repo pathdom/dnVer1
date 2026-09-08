@@ -300,31 +300,31 @@ body {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 16px;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
 }
 
-.stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.stat-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 
 .stat-icon {
-  width: 38px; height: 38px;
-  border-radius: 10px;
+  width: 34px; height: 34px;
+  border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
 }
 
 .stat-trend {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 20px;
 }
 
@@ -333,14 +333,14 @@ body {
 
 .stat-value {
   font-family: var(--font-body);
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--navy);
   line-height: 1;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
-.stat-label { font-size: 12.5px; color: var(--text-soft); }
+.stat-label { font-size: 12px; color: var(--text-soft); }
 
 /* ===== PANELS / GRID LAYOUT ===== */
 .grid-2col {

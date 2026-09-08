@@ -105,7 +105,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
         <div className="stat-card">
           <div className="stat-top">
             <div className="stat-icon" style={{ background: 'var(--teal-soft)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></svg>
             </div>
             <div className="stat-trend trend-up">CSDL Thực</div>
           </div>
@@ -116,7 +116,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
         <div className="stat-card">
           <div className="stat-top">
             <div className="stat-icon" style={{ background: 'var(--gold-soft)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>
             </div>
             <div className="stat-trend trend-up">CSDL Thực</div>
           </div>
@@ -127,7 +127,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
         <div className="stat-card">
           <div className="stat-top">
             <div className="stat-icon" style={{ background: '#E7EEFC' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B6FD1" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B6FD1" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             </div>
             <div className="stat-trend trend-flat">CSDL Thực</div>
           </div>
@@ -138,7 +138,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
         <div className="stat-card">
           <div className="stat-top">
             <div className="stat-icon" style={{ background: 'var(--green-soft)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
             <div className="stat-trend trend-up">CSDL Thực</div>
           </div>
