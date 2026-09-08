@@ -96,7 +96,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
     <section className="page active">
       <Topbar
         eyebrow={todayLabel()}
-        title="Chào mừng trở lại, Hằng 👋"
+        title="Moshi Moshi 👋"
         subtitle="Đây là tình hình hoạt động của trung tâm hôm nay."
         searchPlaceholder="Tìm học viên, hồ sơ..."
       />
