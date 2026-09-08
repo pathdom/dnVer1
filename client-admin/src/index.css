@@ -82,13 +82,13 @@ body {
 .brand-mark { flex-shrink: 0; }
 .brand-text { line-height: 1.05; }
 .brand-name {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 18.5px;
   letter-spacing: 0.2px;
 }
 .brand-sub {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 9.5px;
   letter-spacing: 2.5px;
   color: #2A9D8F;
@@ -104,7 +104,7 @@ body {
 }
 
 .nav-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 9.5px;
   letter-spacing: 1.8px;
   color: #9AA1B1;
@@ -224,7 +224,7 @@ body {
 }
 
 .page-heading h1 {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 28px;
   color: var(--navy);

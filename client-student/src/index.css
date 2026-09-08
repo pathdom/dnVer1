@@ -84,6 +84,8 @@ body {
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 20px; }
 .brand-sub { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 2.5px; color: #8FA3C7; margin-top: 3px; }
+.portal-header .brand-name { font-family: var(--font-body); }
+.portal-header .brand-sub { font-family: var(--font-body); }
 .login-brand-mid h1 {
   font-family: var(--font-display);
   font-weight: 600;
