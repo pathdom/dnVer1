@@ -2,7 +2,7 @@
   --navy: #182644;
   --navy-2: #223258;
   --navy-3: #2b3d68;
-  --bg: #e0f2fe;
+  --bg: #FFFFFF;
   --surface: #FFFFFF;
   --teal: #2A9D8F;
   --teal-soft: #E4F3F1;
@@ -980,7 +980,7 @@ body {
    ===================================================================== */
 html.dark-theme, body.dark-theme {
   --navy: #0F172A;
-  --bg: #e0f2fe;
+  --bg: #0B0F19;
   --surface: #1E293B;
   --text: #F8FAFC;
   --text-soft: #94A3B8;
@@ -994,6 +994,7 @@ html.dark-theme, body.dark-theme {
   --blue-soft: rgba(59, 111, 209, 0.22);
 }
 
+html.dark-theme .page-heading h1,
 html.dark-theme .stat-value,
 html.dark-theme .panel-head h3,
 html.dark-theme .cell-name,
@@ -1001,10 +1002,6 @@ html.dark-theme .action-card-title,
 html.dark-theme .modal-head h3,
 html.dark-theme .profile-name {
   color: #F8FAFC !important;
-}
-
-html.dark-theme .page-heading p {
-  color: #475569 !important;
 }
 
 html.dark-theme .table th {
