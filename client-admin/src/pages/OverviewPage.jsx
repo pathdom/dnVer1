@@ -249,7 +249,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
         </div>
       </div>
 
-      <div className="grid-2col" style={{ marginTop: '16px' }}>
+      <div className="grid-2col" style={{ marginTop: '16px', alignItems: 'stretch' }}>
         <div className="panel">
           <div className="panel-head">
             <div>
@@ -293,10 +293,10 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
             )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 20px 20px' }}>
-            {tasks.map((t, i) => (
+            {tasks.slice(0, 6).map((t, i) => (
               <div
                 key={i}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 13px', borderRadius: 12, background: 'var(--bg)', borderLeft: `3px solid ${t.hot ? 'var(--coral)' : 'var(--border)'}` }}
+                style={{ height: 56, boxSizing: 'border-box', display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 13px', borderRadius: 12, background: 'var(--bg)', borderLeft: `3px solid ${t.hot ? 'var(--coral)' : 'var(--border)'}` }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)' }}>{t.title}</div>
@@ -304,8 +304,13 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
                 </div>
               </div>
             ))}
+            {data && tasks.length > 0 && tasks.length < 6 && (
+              Array.from({ length: 6 - tasks.length }).map((_, i) => (
+                <div key={`filler-${i}`} style={{ height: 56 }} />
+              ))
+            )}
             {data && !tasks.length && (
-              <div style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 13, padding: '10px 0' }}>✅ Không có việc cần xử lý.</div>
+              <div style={{ height: 386, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>✅ Không có việc cần xử lý.</div>
             )}
           </div>
         </div>
