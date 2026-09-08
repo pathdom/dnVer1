@@ -192,6 +192,42 @@ body {
 .filter-bar { display: flex; align-items: center; gap: 9px; margin-bottom: 15px; flex-wrap: wrap; }
 .chip { font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text-soft); cursor: pointer; }
 .chip.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+/* ===== DETAIL TABS ===== */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.detail-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s ease, border-color .15s ease;
+}
+.detail-tab:hover { color: var(--teal); }
+.detail-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+/* ===== MINI TIMELINE ===== */
+.mini-timeline { padding: 16px 20px 20px 20px; }
+.mini-timeline-item { display: flex; gap: 12px; position: relative; padding-bottom: 18px; }
+.mini-timeline-item:last-child { padding-bottom: 0; }
+.mini-timeline-dot-col { display: flex; flex-direction: column; align-items: center; }
+.mini-timeline-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); margin-top: 4px; flex-shrink: 0; }
+.mini-timeline-track { width: 1.5px; flex: 1; background: var(--border); margin-top: 4px; }
+.mini-timeline-item:last-child .mini-timeline-track { display: none; }
+.mini-timeline-content { flex: 1; padding-bottom: 2px; }
+.mini-timeline-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.mini-timeline-date { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
 .filter-search { margin-left: auto; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 13px; width: 200px; color: var(--text-faint); font-size: 12.5px; }
 .filter-search input { border: none; outline: none; background: transparent; width: 100%; font-size: 12.5px; color: var(--text); }
 
