@@ -80,7 +80,7 @@ body {
 .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 19px; color: var(--navy); }
 .brand-sub { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 2.5px; color: var(--teal); margin-top: 3px; }
 .sidebar .brand-name { font-family: var(--font-body); }
-.sidebar .brand-sub { font-family: var(--font-body); }
+.sidebar .brand-sub { font-family: var(--font-body); color: #14564E; }
 .login-brand-mid { position: relative; z-index: 2; }
 .login-brand-mid h1 { font-family: var(--font-display); font-weight: 600; font-size: 31px; line-height: 1.28; max-width: 380px; color: var(--navy); }
 .login-brand-mid p { font-size: 14px; color: var(--text-soft); margin-top: 14px; max-width: 330px; line-height: 1.6; }
@@ -108,16 +108,16 @@ body {
 /* ============ APP SHELL ============ */
 .app { display: flex; min-height: 100vh; }
 .sidebar {
-  width: 232px; flex-shrink: 0; background: #F7FBFD; border-right: 1px solid var(--border);
+  width: 232px; flex-shrink: 0; background: #6eb4d9; border-right: 1px solid var(--border);
   display: flex; flex-direction: column; padding: 18px 13px; position: sticky; top: 0; height: 100vh;
 }
 .sidebar .brand { padding: 4px 6px 15px 6px; }
-.route-divider { height: 1px; background-image: linear-gradient(90deg, transparent, var(--border) 4px, transparent 4px); background-size: 10px 1px; background-repeat: repeat-x; margin: 2px 6px 12px 6px; }
-.nav-label { font-family: var(--font-body); font-size: 9.5px; letter-spacing: 1.8px; color: var(--text-faint); padding: 0 10px; margin-bottom: 6px; text-transform: uppercase; }
+.route-divider { height: 1px; background-image: linear-gradient(90deg, transparent, rgba(24,38,68,0.25) 4px, transparent 4px); background-size: 10px 1px; background-repeat: repeat-x; margin: 2px 6px 12px 6px; }
+.nav-label { font-family: var(--font-body); font-size: 9.5px; letter-spacing: 1.8px; color: rgba(24,38,68,0.6); padding: 0 10px; margin-bottom: 6px; text-transform: uppercase; }
 .nav { display: flex; flex-direction: column; gap: 1px; margin-bottom: 14px; }
 .nav-item {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px;
-  color: var(--text-soft); font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+  color: #1E2536; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: none; width: 100%; text-align: left;
 }
 .nav-item svg { flex-shrink: 0; }
 .nav-item:hover { background: var(--bg); color: var(--navy); }
@@ -129,7 +129,7 @@ body {
 .avatar { border-radius: 50%; background: linear-gradient(135deg, var(--teal), #1d7a70); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; color: #fff; flex-shrink: 0; }
 .user-chip .avatar { width: 30px; height: 30px; font-size: 12px; }
 .user-chip-name { font-size: 12.5px; font-weight: 700; color: var(--navy); }
-.user-chip-role { font-size: 11px; color: var(--text-faint); }
+.user-chip-role { font-size: 11px; color: rgba(24,38,68,0.6); }
 
 .main { flex: 1; min-width: 0; padding: 20px 24px 36px 24px; overflow-y: auto; }
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; }

@@ -47,7 +47,7 @@ body {
 .sidebar {
   width: 264px;
   flex-shrink: 0;
-  background: #F7FBFD;
+  background: #6eb4d9;
   border-right: 1px solid #E7E9F1;
   color: #1E2536;
   display: flex;
@@ -91,13 +91,13 @@ body {
   font-family: var(--font-body);
   font-size: 9.5px;
   letter-spacing: 2.5px;
-  color: #2A9D8F;
+  color: #14564E;
   margin-top: 3px;
 }
 
 .route-divider {
   height: 1px;
-  background-image: linear-gradient(90deg, transparent, #E7E9F1 4px, transparent 4px);
+  background-image: linear-gradient(90deg, transparent, rgba(24,38,68,0.25) 4px, transparent 4px);
   background-size: 10px 1px;
   background-repeat: repeat-x;
   margin: 2px 6px clamp(6px, 1.2vh, 14px) 6px;
@@ -107,7 +107,7 @@ body {
   font-family: var(--font-body);
   font-size: 9.5px;
   letter-spacing: 1.8px;
-  color: #9AA1B1;
+  color: rgba(24,38,68,0.6);
   padding: 0 12px;
   margin-bottom: 4px;
   text-transform: uppercase;
@@ -126,7 +126,7 @@ body {
   gap: 11px;
   padding: clamp(7px, 1vh, 9.5px) 12px;
   border-radius: 10px;
-  color: #6B7280;
+  color: #1E2536;
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
@@ -196,7 +196,7 @@ body {
 
 .user-chip-text { line-height: 1.25; }
 .user-chip-name { font-size: 13px; font-weight: 600; color: #182644; }
-.user-chip-role { font-size: 11.5px; color: #9AA1B1; }
+.user-chip-role { font-size: 11.5px; color: rgba(24,38,68,0.6); }
 
 /* ===== MAIN ===== */
 .main {
