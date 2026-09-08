@@ -332,7 +332,7 @@ body {
 .trend-flat { background: var(--gold-soft); color: var(--gold); }
 
 .stat-value {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 30px;
   font-weight: 600;
   color: var(--navy);
