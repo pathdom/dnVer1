@@ -108,7 +108,7 @@ body {
 /* ============ APP SHELL ============ */
 .app { display: flex; min-height: 100vh; }
 .sidebar {
-  width: 232px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
+  width: 232px; flex-shrink: 0; background: #F7FBFD; border-right: 1px solid var(--border);
   display: flex; flex-direction: column; padding: 18px 13px; position: sticky; top: 0; height: 100vh;
 }
 .sidebar .brand { padding: 4px 6px 15px 6px; }

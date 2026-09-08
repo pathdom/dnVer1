@@ -47,7 +47,7 @@ body {
 .sidebar {
   width: 264px;
   flex-shrink: 0;
-  background: #FFFFFF;
+  background: #F7FBFD;
   border-right: 1px solid #E7E9F1;
   color: #1E2536;
   display: flex;

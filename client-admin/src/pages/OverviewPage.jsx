@@ -174,7 +174,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
                 <tr><th>Học viên</th><th>Quốc gia</th><th>Trạng thái</th></tr>
               </thead>
               <tbody>
-                {filteredStudents.map((s) => (
+                {filteredStudents.slice(0, 4).map((s) => (
                   <tr key={s.id} style={{ cursor: 'pointer' }} onClick={() => { setSelectedStudentId(s.id); setCurrentPage('student-detail'); }}>
                     <td>
                       <div className="cell-person">
