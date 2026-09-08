@@ -175,7 +175,7 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
               </thead>
               <tbody>
                 {filteredStudents.slice(0, 4).map((s) => (
-                  <tr key={s.id} style={{ cursor: 'pointer' }} onClick={() => { setSelectedStudentId(s.id); setCurrentPage('student-detail'); }}>
+                  <tr key={s.id} style={{ height: 57, cursor: 'pointer' }} onClick={() => { setSelectedStudentId(s.id); setCurrentPage('student-detail'); }}>
                     <td>
                       <div className="cell-person">
                         <div className="avatar">{s.avatar}</div>
@@ -189,8 +189,13 @@ export default function OverviewPage({ setCurrentPage, setSelectedStudentId }) {
                     <td><span className={getStampClass(s.statusText)}>{s.statusText}</span></td>
                   </tr>
                 ))}
+                {data && filteredStudents.length > 0 && filteredStudents.length < 4 && (
+                  Array.from({ length: 4 - filteredStudents.length }).map((_, i) => (
+                    <tr key={`filler-${i}`} style={{ height: 57 }}><td colSpan={3}>&nbsp;</td></tr>
+                  ))
+                )}
                 {data && !filteredStudents.length && (
-                  <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-faint)', padding: '20px 0' }}>Không có học viên phù hợp.</td></tr>
+                  <tr><td colSpan={3} style={{ height: 228, textAlign: 'center', color: 'var(--text-faint)' }}>Không có học viên phù hợp.</td></tr>
                 )}
               </tbody>
             </table>
