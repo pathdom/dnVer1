@@ -73,7 +73,7 @@ export default function RelationshipDetailView({ entity, type, backLabel, onBack
   const tabs = [
     { key: 'info', label: 'Thông tin chung', icon: '👤' },
     { key: 'journey', label: 'Hành trình tư vấn', icon: '🧭' },
-    { key: 'docs', label: 'Hồ sơ & tài liệu', icon: '📂' },
+    ...(isCustomer ? [] : [{ key: 'docs', label: 'Hồ sơ & tài liệu', icon: '📂' }]),
     { key: 'notes', label: 'Ghi chú', icon: '📌' },
   ];
 
@@ -165,7 +165,7 @@ export default function RelationshipDetailView({ entity, type, backLabel, onBack
         </div>
       )}
 
-      {activeTab === 'docs' && (
+      {activeTab === 'docs' && !isCustomer && (
         <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
           <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📂 Hồ sơ & tài liệu</h3>

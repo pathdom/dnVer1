@@ -149,7 +149,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
         </div>
       </div>
 
-      <div className="grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginTop: '20px' }}>
+      <div className="grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginTop: '20px', alignItems: 'stretch' }}>
         <div className="col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
@@ -157,6 +157,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
             </div>
             <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13.5px' }}>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Họ và tên</div><div style={{ fontWeight: '600' }}>{student.name}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày sinh</div><div style={{ fontWeight: '600' }}>{student.dob || 'Chưa cập nhật'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Quê quán</div><div style={{ fontWeight: '600' }}>{student.hometown || 'Chưa cập nhật'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số điện thoại</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{student.phone || 'N/A'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Email</div><div style={{ fontWeight: '600' }}>{student.email || 'N/A'}</div></div>
@@ -178,8 +179,23 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày khởi tạo CSDL</div><div style={{ fontWeight: '600' }}>{student.joinedDate || '21/08/2026'}</div></div>
             </div>
           </div>
+        </div>
 
+        <div className="col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>👩‍💼 Nhân viên phụ trách</h3>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className="avatar" style={{ width: '40px', height: '40px', background: 'var(--teal-soft)', color: 'var(--teal)', fontWeight: '700', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>TH</div>
+              <div>
+                <div style={{ fontWeight: '700', color: 'var(--navy)' }}>{student.rep || 'Lê Thu Hà'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Chuyên viên tư vấn & xử lý hồ sơ</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📊 Bảng điểm học tập</h3>
               {gradesMsg && <span style={{ fontSize: '12.5px', fontWeight: 600, color: gradesMsg.startsWith('✅') ? 'var(--green)' : 'var(--coral)' }}>{gradesMsg}</span>}
@@ -222,34 +238,6 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
                 </button>
               </>
             )}
-          </div>
-        </div>
-
-        <div className="col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>👩‍💼 Nhân viên phụ trách</h3>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div className="avatar" style={{ width: '40px', height: '40px', background: 'var(--teal-soft)', color: 'var(--teal)', fontWeight: '700', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>TH</div>
-              <div>
-                <div style={{ fontWeight: '700', color: 'var(--navy)' }}>{student.rep || 'Lê Thu Hà'}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Chuyên viên tư vấn & xử lý hồ sơ</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📌 Ghi chú nội bộ</h3>
-            </div>
-            <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontWeight: '700', color: 'var(--teal)' }}>Lê Thu Hà</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{student.joinedDate || '21/08/2026'}</span>
-              </div>
-              <div>Hồ sơ đã cập nhật CSDL MySQL. Học viên chuẩn bị nhập học kỳ Thu 2026.</div>
-            </div>
           </div>
         </div>
       </div>

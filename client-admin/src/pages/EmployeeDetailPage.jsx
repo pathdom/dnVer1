@@ -98,7 +98,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
         </div>
       </div>
 
-      <div className="grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginTop: '20px' }}>
+      <div className="grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginTop: '20px', alignItems: 'stretch' }}>
         <div className="col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
@@ -124,11 +124,12 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Hình thức hợp đồng</div><div style={{ fontWeight: '600' }}>{emp.workType || 'Chính thức'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Trạng thái làm việc</div><div style={{ fontWeight: '600' }}>{emp.statusText || 'Đang làm việc'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày gia nhập trung tâm</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{emp.startDate || '10/01/2025'}</div></div>
-              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Người quản lý trực tiếp</div><div style={{ fontWeight: '600' }}>{emp.manager || 'Minh Hằng (Admin)'}</div></div>
             </div>
           </div>
+        </div>
 
-          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+        <div className="col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>🎓 Danh sách Học viên đang phụ trách ({emp.assignedStudents ? emp.assignedStudents.length : 0})</h3>
             </div>
@@ -138,9 +139,7 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
                   <tr style={{ background: 'var(--bg)' }}>
                     <th style={{ padding: '8px 12px', textAlign: 'left' }}>Mã HV</th>
                     <th style={{ padding: '8px 12px', textAlign: 'left' }}>Họ và tên</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Quốc gia</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left' }}>Trạng thái</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Thao tác</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center' }}>Hồ sơ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -148,8 +147,6 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
                     <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '10px 12px', fontWeight: '700', fontFamily: 'var(--font-mono)', color: 'var(--teal)' }}>{s.id}</td>
                       <td style={{ padding: '10px 12px', fontWeight: '600' }}>{s.name}</td>
-                      <td style={{ padding: '10px 12px' }}>{s.country}</td>
-                      <td style={{ padding: '10px 12px' }}><span className="stamp stamp-teal" style={{ fontSize: '10px' }}>{s.statusText}</span></td>
                       <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                         <button
                           onClick={() => {
@@ -165,59 +162,6 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📈 Thống kê hiệu suất & KPI</h3>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ background: 'var(--bg)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--teal)' }}>{emp.assignedStudentsCount || 2}</div>
-                <div style={{ fontSize: '11.5px', color: 'var(--text-soft)', marginTop: '2px' }}>Học viên trực tiếp quản lý</div>
-              </div>
-              <div style={{ background: 'var(--bg)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--green)' }}>{emp.kpiRate || '96%'}</div>
-                <div style={{ fontSize: '11.5px', color: 'var(--text-soft)', marginTop: '2px' }}>Tỷ lệ hồ sơ đỗ Visa</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📂 Hợp đồng & Hồ sơ lao động</h3>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>📄</span>
-                  <span style={{ fontWeight: '600' }}>Hop_Dong_Lao_Dong_2025.pdf</span>
-                </div>
-                <span className="stamp stamp-green" style={{ fontSize: '10px' }}>Đã ký</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>🛡️</span>
-                  <span style={{ fontWeight: '600' }}>Cam_Ket_Bao_Mat_Duyet_DB.pdf</span>
-                </div>
-                <span className="stamp stamp-green" style={{ fontSize: '10px' }}>Đã ký</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📌 Ghi chú quản trị</h3>
-            </div>
-            <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: '10px', fontSize: '13px', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontWeight: '700', color: 'var(--teal)' }}>Minh Hằng (Admin)</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{emp.startDate || '10/01/2025'}</span>
-              </div>
-              <div>Nhân viên đạt KPI xuất sắc quý I, năng nổ tư vấn và xử lý hồ sơ đỗ Visa 100%.</div>
             </div>
           </div>
         </div>
