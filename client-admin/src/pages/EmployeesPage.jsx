@@ -21,6 +21,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
     name: '',
     email: '',
     phone: '',
+    dob: '',
     departmentId: boPhan[0]?.id || '',
     roleId: chucDanh[0]?.id || '',
     workType: 'Full-time',
@@ -77,6 +78,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
       name: emp.name || '',
       email: emp.email || '',
       phone: emp.phone || '',
+      dob: emp.ngaySinhRaw || '',
       departmentId: emp.departmentId || boPhan[0]?.id || '',
       roleId: emp.roleId || chucDanh[0]?.id || '',
       workType: emp.workType || 'Full-time',
@@ -286,6 +288,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Mã NV</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Họ và tên</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Số điện thoại</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left' }}>Ngày sinh</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Phòng ban</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Chức danh</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left' }}>Hình thức</th>
@@ -298,13 +301,13 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-faint)' }}>
+                  <td colSpan="11" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-faint)' }}>
                     Đang tải danh sách nhân viên từ CSDL...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="10" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)' }}>
+                  <td colSpan="11" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)' }}>
                     <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔍</div>
                     Không tìm thấy nhân viên nào phù hợp với bộ lọc.
                     <div>
@@ -327,6 +330,7 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)' }}>{emp.phone || 'N/A'}</td>
+                    <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{emp.ngaySinh || 'Chưa cập nhật'}</td>
                     <td style={{ padding: '14px 16px', fontWeight: '600', color: 'var(--navy)' }}>{emp.department || 'Chưa xác định'}</td>
                     <td style={{ padding: '14px 16px', fontWeight: '600', color: 'var(--navy)' }}>{emp.role || 'Nhân viên'}</td>
                     <td style={{ padding: '14px 16px', fontWeight: '500' }}>{emp.workType || 'Full-time'}</td>
@@ -407,6 +411,10 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Ngày sinh</label>
+                  <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Phòng ban</label>
                   <select name="departmentId" value={formData.departmentId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>

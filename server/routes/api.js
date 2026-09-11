@@ -685,6 +685,7 @@ router.post('/employees', async (req, res) => {
       name,
       email,
       phone,
+      dob,
       departmentId,
       roleId,
       workType,
@@ -700,12 +701,13 @@ router.post('/employees', async (req, res) => {
 
     const [result] = await db.query(`
       INSERT INTO nhan_vien
-      (ma_nhan_vien, ho_ten, email, so_dien_thoai, bo_phan_id, chuc_danh_id, hinh_thuc, trang_thai, ngay_vao_lam, created_at)
-      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      (ma_nhan_vien, ho_ten, email, so_dien_thoai, ngay_sinh, bo_phan_id, chuc_danh_id, hinh_thuc, trang_thai, ngay_vao_lam, created_at)
+      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       name,
       email || null,
       phone || null,
+      dob || null,
       departmentId || null,
       roleId || null,
       workType || 'Full-time',
@@ -737,6 +739,7 @@ router.put('/employees/:id', async (req, res) => {
       name,
       email,
       phone,
+      dob,
       departmentId,
       roleId,
       workType,
@@ -748,6 +751,7 @@ router.put('/employees/:id', async (req, res) => {
       name,
       email || null,
       phone || null,
+      dob || null,
       departmentId || null,
       roleId || null,
       workType || 'Full-time',
@@ -761,6 +765,7 @@ router.put('/employees/:id', async (req, res) => {
         ho_ten = ?,
         email = ?,
         so_dien_thoai = ?,
+        ngay_sinh = ?,
         bo_phan_id = ?,
         chuc_danh_id = ?,
         hinh_thuc = ?,
