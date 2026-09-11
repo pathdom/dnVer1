@@ -223,6 +223,8 @@ router.get('/students', async (req, res) => {
         hv.ho_ten as name,
         hv.email,
         hv.so_dien_thoai as phone,
+        IFNULL(DATE_FORMAT(hv.ngay_sinh, '%Y-%m-%d'), '') as ngaySinhRaw,
+        IFNULL(DATE_FORMAT(hv.ngay_sinh, '%d/%m/%Y'), 'Chưa cập nhật') as ngaySinh,
         hv.tinh_thanh_id as tinhThanhId,
         tt.ten_tinh as hometown,
         hv.quoc_gia_id as quocGiaId,
@@ -281,6 +283,8 @@ router.get('/students/:id', async (req, res) => {
         h.ho_ten as name,
         h.email,
         h.so_dien_thoai as phone,
+        IFNULL(DATE_FORMAT(h.ngay_sinh, '%Y-%m-%d'), '') as ngaySinhRaw,
+        IFNULL(DATE_FORMAT(h.ngay_sinh, '%d/%m/%Y'), 'Chưa cập nhật') as dob,
         h.tinh_thanh_id as tinhThanhId,
         tt.ten_tinh as hometown,
         h.quoc_gia_id as quocGiaId,
@@ -313,7 +317,6 @@ router.get('/students/:id', async (req, res) => {
       avatar: s.name ? s.name.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'HV',
       joinedDate: s.createdAt,
       rep: s.repName || 'Lê Thu Hà',
-      dob: '14/03/2005',
       gender: 'Nữ',
       passport: 'P' + String(s.id).padStart(7, '0'),
       school: 'THPT Chu Văn An, Hà Nội',
@@ -422,6 +425,7 @@ router.post('/students', async (req, res) => {
       name,
       email,
       phone,
+      dob,
       tinhThanhId,
       quocGiaId,
       program,
@@ -439,12 +443,13 @@ router.post('/students', async (req, res) => {
 
     const [result] = await db.query(`
       INSERT INTO hoc_vien
-      (ma_hoc_vien, ho_ten, email, so_dien_thoai, tinh_thanh_id, quoc_gia_id, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
-      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      (ma_hoc_vien, ho_ten, email, so_dien_thoai, ngay_sinh, tinh_thanh_id, quoc_gia_id, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
+      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       name,
       email || null,
       phone || null,
+      dob || null,
       tinhThanhId || null,
       quocGiaId || null,
       statusText || 'Đang học tiếng',
@@ -485,6 +490,7 @@ router.put('/students/:id', async (req, res) => {
       name,
       email,
       phone,
+      dob,
       tinhThanhId,
       quocGiaId,
       statusText,
@@ -504,6 +510,7 @@ router.put('/students/:id', async (req, res) => {
       name,
       email || null,
       phone || null,
+      dob || null,
       tinhThanhId || null,
       quocGiaId || null,
       statusText || 'Đang học tiếng',
@@ -518,6 +525,7 @@ router.put('/students/:id', async (req, res) => {
         ho_ten = ?,
         email = ?,
         so_dien_thoai = ?,
+        ngay_sinh = ?,
         tinh_thanh_id = ?,
         quoc_gia_id = ?,
         trang_thai_ho_so = ?,
@@ -664,7 +672,6 @@ router.get('/employees/:id', async (req, res) => {
       passport: '001195001234',
       address: 'Q. Cầu Giấy, Hà Nội',
       contractType: 'Hợp đồng lao động xác định thời hạn (2 năm)',
-      manager: 'Minh Hằng (Quản trị viên)',
       assignedStudentsCount: assignedStudents.length,
       kpiRate: '96%',
       assignedStudents: assignedStudents.map(s => ({
