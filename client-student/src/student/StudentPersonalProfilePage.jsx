@@ -13,6 +13,21 @@ const emptyProfile = () => ({
 });
 const emptyMember = () => ({ quan_he: 'Bố', ho_ten: '', nam_sinh: '', nghe_nghiep: '' });
 
+// Style gọn cho form này (không dùng chung .form-input/.form-group để khỏi ảnh hưởng trang đăng nhập)
+const labelStyle = { display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' };
+const inputStyle = { width: '100%', padding: '7px 10px', border: '1.5px solid var(--border)', borderRadius: '8px', fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--text)', background: 'var(--bg)', boxSizing: 'border-box' };
+const grid3 = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px 14px' };
+const grid2 = { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 14px' };
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
 export default function StudentPersonalProfilePage({ profile: student }) {
   const [profile, setProfile] = useState(emptyProfile());
   const [family, setFamily] = useState([]);
@@ -85,140 +100,124 @@ export default function StudentPersonalProfilePage({ profile: student }) {
       </div>
 
       <div className="panel">
-        <div className="panel-title">Thông tin cá nhân</div>
-        <div className="info-grid">
-          <div className="form-group">
-            <label className="form-label">Số CCCD</label>
-            <input className="form-input" value={profile.so_cccd || ''} onChange={e => handleChange('so_cccd', e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Ngày cấp</label>
-            <input type="date" className="form-input" value={profile.ngay_cap_cccd || ''} onChange={e => handleChange('ngay_cap_cccd', e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Giới tính</label>
-            <select className="form-input" value={profile.gioi_tinh || ''} onChange={e => handleChange('gioi_tinh', e.target.value)}>
+        <div className="panel-title" style={{ marginBottom: '12px' }}>Thông tin cá nhân</div>
+        <div style={grid3}>
+          <Field label="Số CCCD">
+            <input style={inputStyle} value={profile.so_cccd || ''} onChange={e => handleChange('so_cccd', e.target.value)} />
+          </Field>
+          <Field label="Ngày cấp">
+            <input type="date" style={inputStyle} value={profile.ngay_cap_cccd || ''} onChange={e => handleChange('ngay_cap_cccd', e.target.value)} />
+          </Field>
+          <Field label="Giới tính">
+            <select style={inputStyle} value={profile.gioi_tinh || ''} onChange={e => handleChange('gioi_tinh', e.target.value)}>
               <option value="">-- Chọn --</option>
               <option value="Nam">Nam</option>
               <option value="Nữ">Nữ</option>
               <option value="Khác">Khác</option>
             </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Tôn giáo</label>
-            <input className="form-input" value={profile.ton_giao || ''} onChange={e => handleChange('ton_giao', e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Dân tộc</label>
-            <input className="form-input" value={profile.dan_toc || ''} onChange={e => handleChange('dan_toc', e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Tình trạng hôn nhân</label>
-            <input className="form-input" value={profile.tinh_trang_hon_nhan || ''} onChange={e => handleChange('tinh_trang_hon_nhan', e.target.value)} />
-          </div>
+          </Field>
+          <Field label="Tôn giáo">
+            <input style={inputStyle} value={profile.ton_giao || ''} onChange={e => handleChange('ton_giao', e.target.value)} />
+          </Field>
+          <Field label="Dân tộc">
+            <input style={inputStyle} value={profile.dan_toc || ''} onChange={e => handleChange('dan_toc', e.target.value)} />
+          </Field>
+          <Field label="Tình trạng hôn nhân">
+            <input style={inputStyle} value={profile.tinh_trang_hon_nhan || ''} onChange={e => handleChange('tinh_trang_hon_nhan', e.target.value)} />
+          </Field>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-title">Nơi cư trú</div>
-        <div className="form-group">
-          <label className="form-label">Hộ khẩu thường trú</label>
-          <textarea className="form-input" rows={2} value={profile.ho_khau_thuong_tru || ''} onChange={e => handleChange('ho_khau_thuong_tru', e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Nơi tạm trú</label>
-          <textarea className="form-input" rows={2} value={profile.noi_tam_tru || ''} onChange={e => handleChange('noi_tam_tru', e.target.value)} />
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="panel-title">Liên hệ</div>
-        <div className="info-grid">
-          <div className="info-item">
-            <div className="info-label">SĐT học viên</div>
-            <div className="info-value">{student?.phone || 'Chưa cập nhật'}</div>
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">SĐT người thân</label>
-            <input className="form-input" value={profile.sdt_nguoi_than || ''} onChange={e => handleChange('sdt_nguoi_than', e.target.value)} />
-          </div>
+        <div className="panel-title" style={{ marginBottom: '12px' }}>Nơi cư trú</div>
+        <div style={grid2}>
+          <Field label="Hộ khẩu thường trú">
+            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} value={profile.ho_khau_thuong_tru || ''} onChange={e => handleChange('ho_khau_thuong_tru', e.target.value)} />
+          </Field>
+          <Field label="Nơi tạm trú">
+            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} value={profile.noi_tam_tru || ''} onChange={e => handleChange('noi_tam_tru', e.target.value)} />
+          </Field>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-title">Quá trình học tập</div>
+        <div className="panel-title" style={{ marginBottom: '12px' }}>Liên hệ</div>
+        <div style={grid3}>
+          <Field label="SĐT học viên">
+            <div style={{ ...inputStyle, background: 'var(--surface)', color: 'var(--text-soft)' }}>{student?.phone || 'Chưa cập nhật'}</div>
+          </Field>
+          <Field label="SĐT người thân">
+            <input style={inputStyle} value={profile.sdt_nguoi_than || ''} onChange={e => handleChange('sdt_nguoi_than', e.target.value)} />
+          </Field>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title" style={{ marginBottom: '12px' }}>Quá trình học tập</div>
         {[
           { label: 'Trường Tiểu học', key: 'truong_tieu_hoc', tu: 'tieu_hoc_tu', den: 'tieu_hoc_den' },
           { label: 'Trường Trung học', key: 'truong_trung_hoc', tu: 'trung_hoc_tu', den: 'trung_hoc_den' },
           { label: 'Trường THPT', key: 'truong_thpt', tu: 'thpt_tu', den: 'thpt_den' },
           { label: 'Trường Cao đẳng/Đại học', key: 'truong_cd_dh', tu: 'cd_dh_tu', den: 'cd_dh_den' }
         ].map(row => (
-          <div key={row.key} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '14px', marginBottom: '14px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">{row.label}</label>
-              <input className="form-input" value={profile[row.key] || ''} onChange={e => handleChange(row.key, e.target.value)} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Từ năm</label>
-              <input className="form-input" placeholder="VD: 2015" value={profile[row.tu] || ''} onChange={e => handleChange(row.tu, e.target.value)} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Đến năm</label>
-              <input className="form-input" placeholder="VD: 2020" value={profile[row.den] || ''} onChange={e => handleChange(row.den, e.target.value)} />
-            </div>
+          <div key={row.key} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <Field label={row.label}>
+              <input style={inputStyle} value={profile[row.key] || ''} onChange={e => handleChange(row.key, e.target.value)} />
+            </Field>
+            <Field label="Từ năm">
+              <input style={inputStyle} placeholder="VD: 2015" value={profile[row.tu] || ''} onChange={e => handleChange(row.tu, e.target.value)} />
+            </Field>
+            <Field label="Đến năm">
+              <input style={inputStyle} placeholder="VD: 2020" value={profile[row.den] || ''} onChange={e => handleChange(row.den, e.target.value)} />
+            </Field>
           </div>
         ))}
       </div>
 
       <div className="panel">
-        <div className="panel-title">Lịch sử làm việc</div>
-        <textarea className="form-input" rows={3} placeholder="Công ty/vị trí/thời gian làm việc (nếu có)..." value={profile.lich_su_lam_viec || ''} onChange={e => handleChange('lich_su_lam_viec', e.target.value)} />
+        <div className="panel-title" style={{ marginBottom: '12px' }}>Lịch sử làm việc</div>
+        <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} placeholder="Công ty/vị trí/thời gian làm việc (nếu có)..." value={profile.lich_su_lam_viec || ''} onChange={e => handleChange('lich_su_lam_viec', e.target.value)} />
       </div>
 
       <div className="panel">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <div className="panel-title" style={{ marginBottom: 0 }}>Thông tin gia đình</div>
-          <button className="btn-primary" type="button" onClick={addMember} style={{ padding: '8px 16px', fontSize: '13px' }}>+ Thêm thành viên</button>
+          <button className="btn-primary" type="button" onClick={addMember} style={{ padding: '6px 14px', fontSize: '12.5px' }}>+ Thêm thành viên</button>
         </div>
 
         {family.length === 0 && (
-          <p style={{ fontSize: '13.5px', color: 'var(--text-soft)' }}>Chưa có thành viên nào. Bấm "+ Thêm thành viên" để thêm.</p>
+          <p style={{ fontSize: '13px', color: 'var(--text-soft)' }}>Chưa có thành viên nào. Bấm "+ Thêm thành viên" để thêm.</p>
         )}
 
         {family.map((m, i) => {
           const selectVal = KNOWN_RELATIONS.includes(m.quan_he) ? m.quan_he : 'Khác';
           return (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: selectVal === 'Khác' ? '1fr 1fr 2fr 1fr 1.5fr auto' : '1fr 2fr 1fr 1.5fr auto', gap: '10px', alignItems: 'end', marginBottom: '14px', paddingBottom: '14px', borderBottom: i < family.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Quan hệ</label>
-                <select className="form-input" value={selectVal} onChange={e => handleFamilyChange(i, 'quan_he', e.target.value === 'Khác' ? '' : e.target.value)}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: selectVal === 'Khác' ? '0.8fr 0.8fr 1.4fr 0.8fr 1fr auto' : '0.8fr 1.4fr 0.8fr 1fr auto', gap: '8px', alignItems: 'end', marginBottom: '10px', paddingBottom: '10px', borderBottom: i < family.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <Field label="Quan hệ">
+                <select style={inputStyle} value={selectVal} onChange={e => handleFamilyChange(i, 'quan_he', e.target.value === 'Khác' ? '' : e.target.value)}>
                   {KNOWN_RELATIONS.map(r => <option key={r} value={r}>{r}</option>)}
                   <option value="Khác">Khác</option>
                 </select>
-              </div>
+              </Field>
               {selectVal === 'Khác' && (
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Ghi rõ</label>
-                  <input className="form-input" placeholder="VD: Cậu" value={m.quan_he || ''} onChange={e => handleFamilyChange(i, 'quan_he', e.target.value)} />
-                </div>
+                <Field label="Ghi rõ">
+                  <input style={inputStyle} placeholder="VD: Cậu" value={m.quan_he || ''} onChange={e => handleFamilyChange(i, 'quan_he', e.target.value)} />
+                </Field>
               )}
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Họ tên</label>
-                <input className="form-input" value={m.ho_ten || ''} onChange={e => handleFamilyChange(i, 'ho_ten', e.target.value)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Năm sinh</label>
-                <input className="form-input" placeholder="VD: 1980" value={m.nam_sinh || ''} onChange={e => handleFamilyChange(i, 'nam_sinh', e.target.value)} />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Nghề nghiệp</label>
-                <input className="form-input" value={m.nghe_nghiep || ''} onChange={e => handleFamilyChange(i, 'nghe_nghiep', e.target.value)} />
-              </div>
+              <Field label="Họ tên">
+                <input style={inputStyle} value={m.ho_ten || ''} onChange={e => handleFamilyChange(i, 'ho_ten', e.target.value)} />
+              </Field>
+              <Field label="Năm sinh">
+                <input style={inputStyle} placeholder="VD: 1980" value={m.nam_sinh || ''} onChange={e => handleFamilyChange(i, 'nam_sinh', e.target.value)} />
+              </Field>
+              <Field label="Nghề nghiệp">
+                <input style={inputStyle} value={m.nghe_nghiep || ''} onChange={e => handleFamilyChange(i, 'nghe_nghiep', e.target.value)} />
+              </Field>
               <button
                 type="button"
                 onClick={() => removeMember(i)}
                 title="Xóa thành viên"
-                style={{ width: '38px', height: '38px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--coral)', fontSize: '15px' }}
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--coral)', fontSize: '13px' }}
               >✕</button>
             </div>
           );
@@ -226,22 +225,20 @@ export default function StudentPersonalProfilePage({ profile: student }) {
       </div>
 
       <div className="panel">
-        <div className="panel-title">Bản thân</div>
-        <div className="form-group">
-          <label className="form-label">Điểm mạnh</label>
-          <textarea className="form-input" rows={2} value={profile.diem_manh || ''} onChange={e => handleChange('diem_manh', e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Điểm yếu</label>
-          <textarea className="form-input" rows={2} value={profile.diem_yeu || ''} onChange={e => handleChange('diem_yeu', e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Lý do muốn sang Nhật học tập/làm việc</label>
-          <textarea className="form-input" rows={2} value={profile.ly_do_sang_nhat || ''} onChange={e => handleChange('ly_do_sang_nhat', e.target.value)} />
-        </div>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Sở thích</label>
-          <textarea className="form-input" rows={2} value={profile.so_thich || ''} onChange={e => handleChange('so_thich', e.target.value)} />
+        <div className="panel-title" style={{ marginBottom: '12px' }}>Bản thân</div>
+        <div style={grid2}>
+          <Field label="Điểm mạnh">
+            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} value={profile.diem_manh || ''} onChange={e => handleChange('diem_manh', e.target.value)} />
+          </Field>
+          <Field label="Điểm yếu">
+            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} value={profile.diem_yeu || ''} onChange={e => handleChange('diem_yeu', e.target.value)} />
+          </Field>
+          <Field label="Lý do muốn sang Nhật học tập/làm việc">
+            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} value={profile.ly_do_sang_nhat || ''} onChange={e => handleChange('ly_do_sang_nhat', e.target.value)} />
+          </Field>
+          <Field label="Sở thích">
+            <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} value={profile.so_thich || ''} onChange={e => handleChange('so_thich', e.target.value)} />
+          </Field>
         </div>
       </div>
 
