@@ -34,6 +34,7 @@ export default function StudentPersonalProfilePage({ profile: student }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -242,8 +243,12 @@ export default function StudentPersonalProfilePage({ profile: student }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-        <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: '12px 28px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', marginBottom: '30px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', color: 'var(--text)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+          Xác nhận cung cấp thông tin
+        </label>
+        <button className="btn-primary" onClick={handleSave} disabled={saving || !confirmed} style={{ padding: '12px 28px', opacity: confirmed ? 1 : 0.5, cursor: confirmed ? 'pointer' : 'not-allowed' }}>
           {saving ? 'Đang lưu...' : 'Lưu hồ sơ cá nhân'}
         </button>
       </div>
