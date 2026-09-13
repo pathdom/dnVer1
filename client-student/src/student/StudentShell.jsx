@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 import StudentHomePage from './StudentHomePage';
 import StudentProfilePage from './StudentProfilePage';
+import StudentPersonalProfilePage from './StudentPersonalProfilePage';
 import StudentPaymentPage from './StudentPaymentPage';
 import StudentGradesPage from './StudentGradesPage';
 import ProfileMenu from '../components/ProfileMenu';
@@ -35,6 +36,7 @@ export default function StudentShell({ profile, onLogout }) {
         <nav className="portal-nav">
           <button className={`portal-nav-link ${currentTab === 'home' ? 'active' : ''}`} onClick={() => setCurrentTab('home')}>Trang chủ</button>
           <button className={`portal-nav-link ${currentTab === 'profile' ? 'active' : ''}`} onClick={() => setCurrentTab('profile')}>Hồ sơ du học</button>
+          <button className={`portal-nav-link ${currentTab === 'personal' ? 'active' : ''}`} onClick={() => setCurrentTab('personal')}>Hồ sơ cá nhân</button>
           <button className={`portal-nav-link ${currentTab === 'payment' ? 'active' : ''}`} onClick={() => setCurrentTab('payment')}>Học phí</button>
           <button className={`portal-nav-link ${currentTab === 'grades' ? 'active' : ''}`} onClick={() => setCurrentTab('grades')}>Bảng điểm</button>
         </nav>
@@ -55,6 +57,7 @@ export default function StudentShell({ profile, onLogout }) {
       <main className="portal-main">
         {currentTab === 'home' && <StudentHomePage setCurrentTab={setCurrentTab} profile={studentProfile} />}
         {currentTab === 'profile' && <StudentProfilePage profile={studentProfile} />}
+        {currentTab === 'personal' && <StudentPersonalProfilePage profile={studentProfile} />}
         {currentTab === 'payment' && <StudentPaymentPage profile={studentProfile} />}
         {currentTab === 'grades' && <StudentGradesPage />}
       </main>

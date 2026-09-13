@@ -18,6 +18,9 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
   const [gradesLoading, setGradesLoading] = useState(true);
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradesMsg, setGradesMsg] = useState('');
+  const [personalProfile, setPersonalProfile] = useState(null);
+  const [personalFamily, setPersonalFamily] = useState([]);
+  const [personalLoading, setPersonalLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -38,6 +41,19 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
       .then(d => setGrades(d.grades || emptyGrades()))
       .catch(() => setGrades(emptyGrades()))
       .finally(() => setGradesLoading(false));
+  }, [student?.id]);
+
+  useEffect(() => {
+    if (!student) return;
+    setPersonalLoading(true);
+    apiFetch(`/api/students/${student.id}/personal-profile`)
+      .then(res => res.json())
+      .then(d => {
+        setPersonalProfile(d.profile || null);
+        setPersonalFamily(d.family || []);
+      })
+      .catch(() => { setPersonalProfile(null); setPersonalFamily([]); })
+      .finally(() => setPersonalLoading(false));
   }, [student?.id]);
 
   const handleGradeChange = (thang, key, value) => {
@@ -219,6 +235,117 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', marginTop: '20px' }}>
+        <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📋 Hồ sơ cá nhân (học viên tự khai)</h3>
+        </div>
+
+        {personalLoading ? (
+          <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-faint)', fontSize: '13px' }}>Đang tải hồ sơ cá nhân...</div>
+        ) : !personalProfile ? (
+          <p style={{ fontSize: '13.5px', color: 'var(--text-faint)' }}>Học viên chưa điền hồ sơ cá nhân.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Thông tin cá nhân</div>
+              <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', fontSize: '13.5px' }}>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số CCCD</div><div style={{ fontWeight: '600' }}>{personalProfile.so_cccd || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày cấp</div><div style={{ fontWeight: '600' }}>{personalProfile.ngay_cap_cccd || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Giới tính</div><div style={{ fontWeight: '600' }}>{personalProfile.gioi_tinh || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Tôn giáo</div><div style={{ fontWeight: '600' }}>{personalProfile.ton_giao || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Dân tộc</div><div style={{ fontWeight: '600' }}>{personalProfile.dan_toc || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Tình trạng hôn nhân</div><div style={{ fontWeight: '600' }}>{personalProfile.tinh_trang_hon_nhan || 'Chưa cập nhật'}</div></div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Nơi cư trú & Liên hệ</div>
+              <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', fontSize: '13.5px' }}>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Hộ khẩu thường trú</div><div style={{ fontWeight: '600' }}>{personalProfile.ho_khau_thuong_tru || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Nơi tạm trú</div><div style={{ fontWeight: '600' }}>{personalProfile.noi_tam_tru || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>SĐT người thân</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{personalProfile.sdt_nguoi_than || 'Chưa cập nhật'}</div></div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Quá trình học tập</div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg)' }}>
+                      <th style={{ textAlign: 'left', padding: '8px 12px' }}>Bậc học</th>
+                      <th style={{ textAlign: 'left', padding: '8px 12px' }}>Trường</th>
+                      <th style={{ textAlign: 'center', padding: '8px 12px' }}>Từ năm</th>
+                      <th style={{ textAlign: 'center', padding: '8px 12px' }}>Đến năm</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Tiểu học', truong: personalProfile.truong_tieu_hoc, tu: personalProfile.tieu_hoc_tu, den: personalProfile.tieu_hoc_den },
+                      { label: 'Trung học', truong: personalProfile.truong_trung_hoc, tu: personalProfile.trung_hoc_tu, den: personalProfile.trung_hoc_den },
+                      { label: 'THPT', truong: personalProfile.truong_thpt, tu: personalProfile.thpt_tu, den: personalProfile.thpt_den },
+                      { label: 'Cao đẳng/Đại học', truong: personalProfile.truong_cd_dh, tu: personalProfile.cd_dh_tu, den: personalProfile.cd_dh_den }
+                    ].map(row => (
+                      <tr key={row.label} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 12px', fontWeight: '600' }}>{row.label}</td>
+                        <td style={{ padding: '8px 12px' }}>{row.truong || 'Chưa cập nhật'}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{row.tu || '—'}</td>
+                        <td style={{ padding: '8px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{row.den || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Lịch sử làm việc</div>
+              <p style={{ fontSize: '13.5px', margin: 0 }}>{personalProfile.lich_su_lam_viec || 'Chưa cập nhật'}</p>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Thông tin gia đình</div>
+              {personalFamily.length === 0 ? (
+                <p style={{ fontSize: '13.5px', color: 'var(--text-faint)', margin: 0 }}>Chưa có thông tin.</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg)' }}>
+                        <th style={{ textAlign: 'left', padding: '8px 12px' }}>Quan hệ</th>
+                        <th style={{ textAlign: 'left', padding: '8px 12px' }}>Họ tên</th>
+                        <th style={{ textAlign: 'center', padding: '8px 12px' }}>Năm sinh</th>
+                        <th style={{ textAlign: 'left', padding: '8px 12px' }}>Nghề nghiệp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {personalFamily.map(m => (
+                        <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
+                          <td style={{ padding: '8px 12px', fontWeight: '600' }}>{m.quan_he}</td>
+                          <td style={{ padding: '8px 12px' }}>{m.ho_ten}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{m.nam_sinh || '—'}</td>
+                          <td style={{ padding: '8px 12px' }}>{m.nghe_nghiep || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Bản thân</div>
+              <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '13.5px' }}>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Điểm mạnh</div><div style={{ fontWeight: '600' }}>{personalProfile.diem_manh || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Điểm yếu</div><div style={{ fontWeight: '600' }}>{personalProfile.diem_yeu || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Lý do muốn sang Nhật</div><div style={{ fontWeight: '600' }}>{personalProfile.ly_do_sang_nhat || 'Chưa cập nhật'}</div></div>
+                <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Sở thích</div><div style={{ fontWeight: '600' }}>{personalProfile.so_thich || 'Chưa cập nhật'}</div></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

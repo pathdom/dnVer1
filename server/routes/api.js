@@ -353,6 +353,27 @@ async function resolveHocVienId(targetId) {
   return rows[0] ? rows[0].id : null;
 }
 
+// GET /api/students/:id/personal-profile — hồ sơ cá nhân học viên tự khai (admin/staff xem, read-only)
+router.get('/students/:id/personal-profile', async (req, res) => {
+  try {
+    const hocVienId = await resolveHocVienId(req.params.id);
+    if (!hocVienId) return res.status(404).json({ error: 'Không tìm thấy học viên' });
+
+    const [rows] = await db.query(
+      "SELECT *, DATE_FORMAT(ngay_cap_cccd, '%Y-%m-%d') as ngay_cap_cccd FROM ho_so_ca_nhan WHERE hoc_vien_id = ?",
+      [hocVienId]
+    );
+    const [family] = await db.query(
+      'SELECT id, quan_he, ho_ten, nam_sinh, nghe_nghiep FROM ho_so_gia_dinh WHERE hoc_vien_id = ? ORDER BY id',
+      [hocVienId]
+    );
+    res.json({ profile: rows[0] || null, family });
+  } catch (err) {
+    console.error('Lỗi GET /api/students/:id/personal-profile:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
 // GET /api/students/:id/grades
 router.get('/students/:id/grades', async (req, res) => {
   try {

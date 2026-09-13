@@ -151,6 +151,78 @@ router.get('/grades', async (req, res) => {
   }
 });
 
+// GET /api/student/personal-profile — hồ sơ cá nhân tự khai của chính học viên
+router.get('/personal-profile', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT *, DATE_FORMAT(ngay_cap_cccd, '%Y-%m-%d') as ngay_cap_cccd FROM ho_so_ca_nhan WHERE hoc_vien_id = ?",
+      [req.user.id]
+    );
+    const [family] = await db.query(
+      'SELECT id, quan_he, ho_ten, nam_sinh, nghe_nghiep FROM ho_so_gia_dinh WHERE hoc_vien_id = ? ORDER BY id',
+      [req.user.id]
+    );
+    res.json({ profile: rows[0] || null, family });
+  } catch (err) {
+    console.error('Lỗi GET /api/student/personal-profile:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// PUT /api/student/personal-profile — học viên tự lưu hồ sơ cá nhân (upsert)
+router.put('/personal-profile', async (req, res) => {
+  try {
+    const p = req.body.profile || {};
+    const family = Array.isArray(req.body.family) ? req.body.family : [];
+
+    await db.query(`
+      INSERT INTO ho_so_ca_nhan (
+        hoc_vien_id, so_cccd, ngay_cap_cccd, gioi_tinh, ton_giao, dan_toc, tinh_trang_hon_nhan,
+        ho_khau_thuong_tru, noi_tam_tru, sdt_nguoi_than,
+        truong_tieu_hoc, tieu_hoc_tu, tieu_hoc_den,
+        truong_trung_hoc, trung_hoc_tu, trung_hoc_den,
+        truong_thpt, thpt_tu, thpt_den,
+        truong_cd_dh, cd_dh_tu, cd_dh_den,
+        lich_su_lam_viec, diem_manh, diem_yeu, ly_do_sang_nhat, so_thich
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        so_cccd = VALUES(so_cccd), ngay_cap_cccd = VALUES(ngay_cap_cccd), gioi_tinh = VALUES(gioi_tinh),
+        ton_giao = VALUES(ton_giao), dan_toc = VALUES(dan_toc), tinh_trang_hon_nhan = VALUES(tinh_trang_hon_nhan),
+        ho_khau_thuong_tru = VALUES(ho_khau_thuong_tru), noi_tam_tru = VALUES(noi_tam_tru), sdt_nguoi_than = VALUES(sdt_nguoi_than),
+        truong_tieu_hoc = VALUES(truong_tieu_hoc), tieu_hoc_tu = VALUES(tieu_hoc_tu), tieu_hoc_den = VALUES(tieu_hoc_den),
+        truong_trung_hoc = VALUES(truong_trung_hoc), trung_hoc_tu = VALUES(trung_hoc_tu), trung_hoc_den = VALUES(trung_hoc_den),
+        truong_thpt = VALUES(truong_thpt), thpt_tu = VALUES(thpt_tu), thpt_den = VALUES(thpt_den),
+        truong_cd_dh = VALUES(truong_cd_dh), cd_dh_tu = VALUES(cd_dh_tu), cd_dh_den = VALUES(cd_dh_den),
+        lich_su_lam_viec = VALUES(lich_su_lam_viec), diem_manh = VALUES(diem_manh), diem_yeu = VALUES(diem_yeu),
+        ly_do_sang_nhat = VALUES(ly_do_sang_nhat), so_thich = VALUES(so_thich)
+    `, [
+      req.user.id,
+      p.so_cccd || null, p.ngay_cap_cccd || null, p.gioi_tinh || null, p.ton_giao || null, p.dan_toc || null, p.tinh_trang_hon_nhan || null,
+      p.ho_khau_thuong_tru || null, p.noi_tam_tru || null, p.sdt_nguoi_than || null,
+      p.truong_tieu_hoc || null, p.tieu_hoc_tu || null, p.tieu_hoc_den || null,
+      p.truong_trung_hoc || null, p.trung_hoc_tu || null, p.trung_hoc_den || null,
+      p.truong_thpt || null, p.thpt_tu || null, p.thpt_den || null,
+      p.truong_cd_dh || null, p.cd_dh_tu || null, p.cd_dh_den || null,
+      p.lich_su_lam_viec || null, p.diem_manh || null, p.diem_yeu || null, p.ly_do_sang_nhat || null, p.so_thich || null
+    ]);
+
+    // Đơn giản & an toàn: xóa hết thành viên cũ rồi thêm lại toàn bộ danh sách mới
+    await db.query('DELETE FROM ho_so_gia_dinh WHERE hoc_vien_id = ?', [req.user.id]);
+    for (const m of family) {
+      if (!m || !m.ho_ten || !m.ho_ten.trim()) continue;
+      await db.query(
+        'INSERT INTO ho_so_gia_dinh (hoc_vien_id, quan_he, ho_ten, nam_sinh, nghe_nghiep) VALUES (?, ?, ?, ?, ?)',
+        [req.user.id, m.quan_he || 'Khác', m.ho_ten.trim(), m.nam_sinh || null, m.nghe_nghiep || null]
+      );
+    }
+
+    res.json({ success: true, message: 'Đã lưu hồ sơ cá nhân' });
+  } catch (err) {
+    console.error('Lỗi PUT /api/student/personal-profile:', err);
+    res.status(500).json({ error: 'Không thể lưu hồ sơ cá nhân: ' + err.message });
+  }
+});
+
 // POST /api/student/change-password
 router.post('/change-password', async (req, res) => {
   try {
