@@ -295,12 +295,14 @@ router.get('/students/:id', async (req, res) => {
         h.nhan_vien_id as nhanVienId,
         nv.ho_ten as repName,
         cd.ten_chuc_danh as repRole,
+        bp.ten_bo_phan as repDept,
         IFNULL(h.tien_da_dong, 0) as tienDaDong,
         IFNULL(h.tong_tien, 0) as tongTien,
         IFNULL(DATE_FORMAT(h.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
       FROM hoc_vien h
       LEFT JOIN nhan_vien nv ON h.nhan_vien_id = nv.id
       LEFT JOIN chuc_danh cd ON cd.id = nv.chuc_danh_id
+      LEFT JOIN bo_phan bp ON bp.id = nv.bo_phan_id
       LEFT JOIN tinh_thanh tt ON tt.id = h.tinh_thanh_id
       LEFT JOIN quoc_gia qg ON qg.id = h.quoc_gia_id
       WHERE h.ma_hoc_vien = ? ${isNumericId ? 'OR h.id = ?' : ''}
@@ -337,15 +339,6 @@ router.get('/students/:id', async (req, res) => {
   }
 });
 
-// Bảng điểm: 3 học kỳ x 5 kỹ năng, thang điểm 10
-const GRADE_SKILLS = [
-  { col: 'Từ vựng', key: 'tuVung' },
-  { col: 'Ngữ pháp', key: 'nguPhap' },
-  { col: 'Hán tự', key: 'hanTu' },
-  { col: 'Nghe', key: 'nghe' },
-  { col: 'Hội thoại', key: 'hoiThoai' }
-];
-
 async function resolveHocVienId(targetId) {
   const isNumericId = /^\d+$/.test(targetId);
   const [rows] = await db.query(
@@ -376,58 +369,58 @@ router.get('/students/:id/personal-profile', async (req, res) => {
   }
 });
 
-// GET /api/students/:id/grades
+const GRADE_SCORE_COLS = ['diem_tu_vung', 'diem_ngu_phap', 'diem_han_tu', 'diem_nghe', 'diem_hoi_thoai'];
+
+// GET /api/students/:id/grades?loai=tuan|thang
 router.get('/students/:id/grades', async (req, res) => {
   try {
     const hocVienId = await resolveHocVienId(req.params.id);
     if (!hocVienId) return res.status(404).json({ error: 'Không tìm thấy học viên' });
 
+    const loai = req.query.loai === 'thang' ? 'thang' : 'tuan';
     const [rows] = await db.query(
-      'SELECT thang, ky_nang, diem FROM bang_diem WHERE hoc_vien_id = ?',
-      [hocVienId]
+      'SELECT id, nhan, thu_tu, diem_tu_vung, diem_ngu_phap, diem_han_tu, diem_nghe, diem_hoi_thoai FROM bang_diem_ky WHERE hoc_vien_id = ? AND loai = ? ORDER BY thu_tu',
+      [hocVienId, loai]
     );
-
-    const grades = { thang1: {}, thang2: {}, thang3: {}, thang4: {}, thang5: {}, thang6: {} };
-    for (const r of rows) {
-      const skill = GRADE_SKILLS.find(s => s.col === r.ky_nang);
-      if (skill) grades[`thang${r.thang}`][skill.key] = Number(r.diem);
-    }
-    res.json({ grades });
+    res.json({ rows });
   } catch (err) {
     console.error('Lỗi GET /api/students/:id/grades:', err);
     res.status(500).json({ error: 'Database query failed' });
   }
 });
 
-// PUT /api/students/:id/grades — cập nhật điểm 1 tháng
+// PUT /api/students/:id/grades — lưu lại toàn bộ danh sách dòng điểm theo loại (tuần/tháng)
 router.put('/students/:id/grades', async (req, res) => {
   const conn = await db.getConnection();
   try {
     const hocVienId = await resolveHocVienId(req.params.id);
     if (!hocVienId) return res.status(404).json({ error: 'Không tìm thấy học viên' });
 
-    const thang = Number(req.body.thang);
-    if (![1, 2, 3, 4, 5, 6].includes(thang)) {
-      return res.status(400).json({ error: 'Tháng không hợp lệ' });
+    const loai = req.body.loai === 'thang' ? 'thang' : 'tuan';
+    const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+
+    for (const r of rows) {
+      if (!r.nhan || !r.nhan.trim()) {
+        return res.status(400).json({ error: 'Mỗi dòng cần có tên (VD: Tuần 1)' });
+      }
+      for (const col of GRADE_SCORE_COLS) {
+        const val = r[col];
+        if (val === null || val === undefined || val === '') continue;
+        const diem = Number(val);
+        if (Number.isNaN(diem) || diem < 0 || diem > 10) {
+          return res.status(400).json({ error: `Điểm phải từ 0 đến 10 (dòng "${r.nhan}")` });
+        }
+      }
     }
-    const grades = req.body.grades || {};
 
     await conn.beginTransaction();
-    for (const skill of GRADE_SKILLS) {
-      const val = grades[skill.key];
-      if (val === null || val === undefined || val === '') {
-        await conn.query('DELETE FROM bang_diem WHERE hoc_vien_id = ? AND thang = ? AND ky_nang = ?', [hocVienId, thang, skill.col]);
-        continue;
-      }
-      const diem = Number(val);
-      if (Number.isNaN(diem) || diem < 0 || diem > 10) {
-        await conn.rollback();
-        return res.status(400).json({ error: `Điểm ${skill.col} phải từ 0 đến 10` });
-      }
+    await conn.query('DELETE FROM bang_diem_ky WHERE hoc_vien_id = ? AND loai = ?', [hocVienId, loai]);
+    let thuTu = 0;
+    for (const r of rows) {
       await conn.query(
-        `INSERT INTO bang_diem (hoc_vien_id, thang, ky_nang, diem) VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE diem = VALUES(diem)`,
-        [hocVienId, thang, skill.col, diem]
+        `INSERT INTO bang_diem_ky (hoc_vien_id, loai, nhan, thu_tu, diem_tu_vung, diem_ngu_phap, diem_han_tu, diem_nghe, diem_hoi_thoai)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [hocVienId, loai, r.nhan.trim(), thuTu++, r.diem_tu_vung || null, r.diem_ngu_phap || null, r.diem_han_tu || null, r.diem_nghe || null, r.diem_hoi_thoai || null]
       );
     }
     await conn.commit();

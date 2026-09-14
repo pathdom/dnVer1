@@ -125,26 +125,15 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// GET /api/student/grades — bảng điểm 3 học kỳ x 5 kỹ năng của chính học viên
-const GRADE_SKILLS = [
-  { col: 'Từ vựng', key: 'tuVung' },
-  { col: 'Ngữ pháp', key: 'nguPhap' },
-  { col: 'Hán tự', key: 'hanTu' },
-  { col: 'Nghe', key: 'nghe' },
-  { col: 'Hội thoại', key: 'hoiThoai' }
-];
+// GET /api/student/grades?loai=tuan|thang — bảng điểm của chính học viên (read-only)
 router.get('/grades', async (req, res) => {
   try {
+    const loai = req.query.loai === 'thang' ? 'thang' : 'tuan';
     const [rows] = await db.query(
-      'SELECT thang, ky_nang, diem FROM bang_diem WHERE hoc_vien_id = ?',
-      [req.user.id]
+      'SELECT id, nhan, thu_tu, diem_tu_vung, diem_ngu_phap, diem_han_tu, diem_nghe, diem_hoi_thoai FROM bang_diem_ky WHERE hoc_vien_id = ? AND loai = ? ORDER BY thu_tu',
+      [req.user.id, loai]
     );
-    const grades = { thang1: {}, thang2: {}, thang3: {}, thang4: {}, thang5: {}, thang6: {} };
-    for (const r of rows) {
-      const skill = GRADE_SKILLS.find(s => s.col === r.ky_nang);
-      if (skill) grades[`thang${r.thang}`][skill.key] = Number(r.diem);
-    }
-    res.json({ grades });
+    res.json({ rows });
   } catch (err) {
     console.error('Lỗi API /api/student/grades:', err);
     res.status(500).json({ error: 'Database query error' });

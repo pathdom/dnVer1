@@ -2,19 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 
 const GRADE_SKILLS = [
-  { key: 'tuVung', label: 'Từ vựng' },
-  { key: 'nguPhap', label: 'Ngữ pháp' },
-  { key: 'hanTu', label: 'Hán tự' },
-  { key: 'nghe', label: 'Nghe' },
-  { key: 'hoiThoai', label: 'Hội thoại' }
+  { key: 'diem_tu_vung', label: 'Từ vựng' },
+  { key: 'diem_ngu_phap', label: 'Ngữ pháp' },
+  { key: 'diem_han_tu', label: 'Hán tự' },
+  { key: 'diem_nghe', label: 'Nghe' },
+  { key: 'diem_hoi_thoai', label: 'Hội thoại' }
 ];
-const MONTHS = [1, 2, 3, 4, 5, 6];
-const emptyGrades = () => ({ thang1: {}, thang2: {}, thang3: {}, thang4: {}, thang5: {}, thang6: {} });
+const emptyGradeRow = (nhan) => ({ nhan, diem_tu_vung: '', diem_ngu_phap: '', diem_han_tu: '', diem_nghe: '', diem_hoi_thoai: '' });
+function rowAverage(row) {
+  const vals = GRADE_SKILLS.map(s => row[s.key]).filter(v => v !== null && v !== undefined && v !== '').map(Number);
+  if (!vals.length) return null;
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+}
 
 export default function StaffStudentDetailPage({ studentId, onBack }) {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [grades, setGrades] = useState(emptyGrades());
+  const [gradeType, setGradeType] = useState('tuan');
+  const [gradeRows, setGradeRows] = useState([]);
   const [gradesLoading, setGradesLoading] = useState(true);
   const [savingGrades, setSavingGrades] = useState(false);
   const [gradesMsg, setGradesMsg] = useState('');
@@ -36,12 +41,12 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
   useEffect(() => {
     if (!student) return;
     setGradesLoading(true);
-    apiFetch(`/api/students/${student.id}/grades`)
+    apiFetch(`/api/students/${student.id}/grades?loai=${gradeType}`)
       .then(res => res.json())
-      .then(d => setGrades(d.grades || emptyGrades()))
-      .catch(() => setGrades(emptyGrades()))
+      .then(d => setGradeRows(d.rows || []))
+      .catch(() => setGradeRows([]))
       .finally(() => setGradesLoading(false));
-  }, [student?.id]);
+  }, [student?.id, gradeType]);
 
   useEffect(() => {
     if (!student) return;
@@ -56,26 +61,34 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
       .finally(() => setPersonalLoading(false));
   }, [student?.id]);
 
-  const handleGradeChange = (thang, key, value) => {
-    setGrades(prev => ({ ...prev, [`thang${thang}`]: { ...prev[`thang${thang}`], [key]: value } }));
+  const handleRowChange = (index, key, value) => {
+    setGradeRows(prev => prev.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
   };
+
+  const addGradeRow = () => {
+    const label = gradeType === 'tuan' ? `Tuần ${gradeRows.length + 1}` : `Tháng ${gradeRows.length + 1}`;
+    setGradeRows(prev => [...prev, emptyGradeRow(label)]);
+  };
+
+  const removeGradeRow = (index) => setGradeRows(prev => prev.filter((_, i) => i !== index));
 
   const handleSaveGrades = () => {
     setSavingGrades(true);
     setGradesMsg('');
-    Promise.all(MONTHS.map(m =>
-      apiFetch(`/api/students/${student.id}/grades`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thang: m, grades: grades[`thang${m}`] })
-      }).then(res => res.json())
-    ))
-      .then(results => {
+    apiFetch(`/api/students/${student.id}/grades`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loai: gradeType, rows: gradeRows })
+    })
+      .then(res => res.json())
+      .then(data => {
         setSavingGrades(false);
-        const err = results.find(r => r.error);
-        if (err) { setGradesMsg('❌ ' + err.error); return; }
-        setGradesMsg('✅ Đã lưu bảng điểm');
-        setTimeout(() => setGradesMsg(''), 3000);
+        if (data.success) {
+          setGradesMsg('✅ Đã lưu bảng điểm');
+          setTimeout(() => setGradesMsg(''), 3000);
+        } else {
+          setGradesMsg('❌ ' + (data.error || 'Có lỗi xảy ra'));
+        }
       })
       .catch(err => { setSavingGrades(false); setGradesMsg('❌ Lỗi kết nối máy chủ: ' + err.message); });
   };
@@ -162,9 +175,19 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
           </div>
 
           <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)' }}>
-            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📊 Bảng điểm học tập</h3>
-              {gradesMsg && <span style={{ fontSize: '12.5px', fontWeight: 600, color: gradesMsg.startsWith('✅') ? 'var(--green)' : 'var(--coral)' }}>{gradesMsg}</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {gradesMsg && <span style={{ fontSize: '12.5px', fontWeight: 600, color: gradesMsg.startsWith('✅') ? 'var(--green)' : 'var(--coral)' }}>{gradesMsg}</span>}
+                <div style={{ display: 'flex', border: '1.5px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                  {[{ key: 'tuan', label: 'Tuần' }, { key: 'thang', label: 'Tháng' }].map(t => (
+                    <button
+                      key={t.key} type="button" onClick={() => setGradeType(t.key)}
+                      style={{ padding: '5px 12px', fontSize: '12.5px', fontWeight: 600, border: 'none', cursor: 'pointer', background: gradeType === t.key ? 'var(--teal)' : 'var(--bg)', color: gradeType === t.key ? '#fff' : 'var(--text)' }}
+                    >{t.label}</button>
+                  ))}
+                </div>
+              </div>
             </div>
             {gradesLoading ? (
               <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-faint)', fontSize: '13px' }}>Đang tải bảng điểm...</div>
@@ -174,32 +197,49 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: 'left', padding: '8px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Kỹ năng</th>
-                        {MONTHS.map(m => (
-                          <th key={m} style={{ textAlign: 'center', padding: '8px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Tháng {m}</th>
+                        <th style={{ textAlign: 'left', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Thời gian</th>
+                        {GRADE_SKILLS.map(skill => (
+                          <th key={skill.key} style={{ textAlign: 'center', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>{skill.label}</th>
                         ))}
+                        <th style={{ textAlign: 'center', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>TB</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {GRADE_SKILLS.map(skill => (
-                        <tr key={skill.key}>
-                          <td style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--navy)' }}>{skill.label}</td>
-                          {MONTHS.map(m => (
-                            <td key={m} style={{ padding: '6px 8px', textAlign: 'center' }}>
+                      {gradeRows.length === 0 && (
+                        <tr><td colSpan={GRADE_SKILLS.length + 3} style={{ padding: '14px', textAlign: 'center', color: 'var(--text-faint)' }}>Chưa có dòng nào. Bấm "+ Thêm dòng" để bắt đầu.</td></tr>
+                      )}
+                      {gradeRows.map((row, i) => (
+                        <tr key={i}>
+                          <td style={{ padding: '4px 4px' }}>
+                            <input
+                              value={row.nhan} onChange={(e) => handleRowChange(i, 'nhan', e.target.value)}
+                              style={{ width: '90px', padding: '4px 6px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', fontWeight: 600 }}
+                            />
+                          </td>
+                          {GRADE_SKILLS.map(skill => (
+                            <td key={skill.key} style={{ padding: '4px 4px', textAlign: 'center' }}>
                               <input
                                 type="number" min="0" max="10" step="0.1"
-                                value={grades[`thang${m}`]?.[skill.key] ?? ''}
-                                onChange={(e) => handleGradeChange(m, skill.key, e.target.value)}
-                                style={{ width: '56px', padding: '5px 6px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}
+                                value={row[skill.key] ?? ''}
+                                onChange={(e) => handleRowChange(i, skill.key, e.target.value)}
+                                style={{ width: '52px', padding: '4px 6px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}
                               />
                             </td>
                           ))}
+                          <td style={{ padding: '4px 4px', textAlign: 'center', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--font-mono)' }}>
+                            {rowAverage(row) ?? '—'}
+                          </td>
+                          <td style={{ padding: '4px 4px', textAlign: 'center' }}>
+                            <button type="button" onClick={() => removeGradeRow(i)} title="Xóa dòng" style={{ width: '26px', height: '26px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--coral)', fontSize: '12px' }}>✕</button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <button className="btn-primary" onClick={handleSaveGrades} disabled={savingGrades} style={{ marginTop: '14px', width: '100%' }}>
+                <button type="button" className="btn-ghost" onClick={addGradeRow} style={{ marginTop: '12px', fontSize: '12.5px', alignSelf: 'flex-start' }}>+ Thêm dòng</button>
+                <button className="btn-primary" onClick={handleSaveGrades} disabled={savingGrades} style={{ marginTop: '12px', width: '100%' }}>
                   {savingGrades ? 'Đang lưu...' : 'Lưu bảng điểm'}
                 </button>
               </>
