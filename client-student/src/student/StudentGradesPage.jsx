@@ -23,6 +23,15 @@ function rowAverage(row) {
   return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 }
 
+const GRADE_ROW_COUNT = 4;
+const gradeLabel = (gradeType, i) => (gradeType === 'tuan' ? `Tuần ${i + 1}` : `Tháng ${i + 1}`);
+function buildFixedRows(gradeType, savedRows) {
+  return Array.from({ length: GRADE_ROW_COUNT }, (_, i) => ({
+    ...(savedRows[i] || {}),
+    nhan: gradeLabel(gradeType, i)
+  }));
+}
+
 export default function StudentGradesPage() {
   const [gradeType, setGradeType] = useState('tuan');
   const [rows, setRows] = useState([]);
@@ -32,8 +41,8 @@ export default function StudentGradesPage() {
     setLoading(true);
     apiFetch(`/api/student/grades?loai=${gradeType}`)
       .then(res => res.json())
-      .then(d => setRows(d.rows || []))
-      .catch(() => setRows([]))
+      .then(d => setRows(buildFixedRows(gradeType, d.rows || [])))
+      .catch(() => setRows(buildFixedRows(gradeType, [])))
       .finally(() => setLoading(false));
   }, [gradeType]);
 
@@ -57,28 +66,6 @@ export default function StudentGradesPage() {
             {filterToggle}
           </div>
           <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-faint)' }}>Đang tải dữ liệu điểm...</div>
-        </div>
-      </section>
-    );
-  }
-
-  if (rows.length === 0) {
-    return (
-      <section className="portal-page active">
-        <div className="panel">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <div className="panel-title" style={{ marginBottom: 0 }}>Bảng điểm học tập</div>
-            {filterToggle}
-          </div>
-          <div className="empty-state">
-            <div className="empty-state-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            </div>
-            <div className="empty-state-title">Chưa có dữ liệu điểm</div>
-            <div className="empty-state-sub">
-              Kết quả học tập theo {gradeType === 'tuan' ? 'tuần' : 'tháng'} sẽ được tư vấn viên và quản trị viên cập nhật tại đây khi hồ sơ của bạn có dữ liệu điểm.
-            </div>
-          </div>
         </div>
       </section>
     );

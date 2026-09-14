@@ -8,7 +8,17 @@ const GRADE_SKILLS = [
   { key: 'diem_nghe', label: 'Nghe' },
   { key: 'diem_hoi_thoai', label: 'Hội thoại' }
 ];
+const GRADE_ROW_COUNT = 4;
+const gradeLabel = (gradeType, i) => (gradeType === 'tuan' ? `Tuần ${i + 1}` : `Tháng ${i + 1}`);
 const emptyGradeRow = (nhan) => ({ nhan, diem_tu_vung: '', diem_ngu_phap: '', diem_han_tu: '', diem_nghe: '', diem_hoi_thoai: '' });
+function buildFixedRows(gradeType, savedRows) {
+  return Array.from({ length: GRADE_ROW_COUNT }, (_, i) => {
+    const saved = savedRows[i];
+    const row = saved ? { ...saved } : emptyGradeRow('');
+    row.nhan = gradeLabel(gradeType, i);
+    return row;
+  });
+}
 function rowAverage(row) {
   const vals = GRADE_SKILLS.map(s => row[s.key]).filter(v => v !== null && v !== undefined && v !== '').map(Number);
   if (!vals.length) return null;
@@ -75,8 +85,8 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
     setGradesLoading(true);
     apiFetch(`/api/students/${student.id}/grades?loai=${gradeType}`)
       .then(res => res.json())
-      .then(d => setGradeRows(d.rows || []))
-      .catch(() => setGradeRows([]))
+      .then(d => setGradeRows(buildFixedRows(gradeType, d.rows || [])))
+      .catch(() => setGradeRows(buildFixedRows(gradeType, [])))
       .finally(() => setGradesLoading(false));
   }, [student?.id, gradeType]);
 
@@ -96,13 +106,6 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
   const handleRowChange = (index, key, value) => {
     setGradeRows(prev => prev.map((r, i) => (i === index ? { ...r, [key]: value } : r)));
   };
-
-  const addGradeRow = () => {
-    const label = gradeType === 'tuan' ? `Tuần ${gradeRows.length + 1}` : `Tháng ${gradeRows.length + 1}`;
-    setGradeRows(prev => [...prev, emptyGradeRow(label)]);
-  };
-
-  const removeGradeRow = (index) => setGradeRows(prev => prev.filter((_, i) => i !== index));
 
   const handleSaveGrades = () => {
     setSavingGrades(true);
@@ -257,21 +260,12 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
                           <th key={skill.key} style={{ textAlign: 'center', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>{skill.label}</th>
                         ))}
                         <th style={{ textAlign: 'center', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>TB</th>
-                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {gradeRows.length === 0 && (
-                        <tr><td colSpan={GRADE_SKILLS.length + 3} style={{ padding: '14px', textAlign: 'center', color: 'var(--text-faint)' }}>Chưa có dòng nào. Bấm "+ Thêm dòng" để bắt đầu.</td></tr>
-                      )}
                       {gradeRows.map((row, i) => (
                         <tr key={i}>
-                          <td style={{ padding: '4px 4px' }}>
-                            <input
-                              value={row.nhan} onChange={(e) => handleRowChange(i, 'nhan', e.target.value)}
-                              style={{ width: '90px', padding: '4px 6px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', fontWeight: 600 }}
-                            />
-                          </td>
+                          <td style={{ padding: '4px 8px', fontWeight: 600, color: 'var(--navy)' }}>{row.nhan}</td>
                           {GRADE_SKILLS.map(skill => (
                             <td key={skill.key} style={{ padding: '4px 4px', textAlign: 'center' }}>
                               <input
@@ -285,15 +279,11 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
                           <td style={{ padding: '4px 4px', textAlign: 'center', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--font-mono)' }}>
                             {rowAverage(row) ?? '—'}
                           </td>
-                          <td style={{ padding: '4px 4px', textAlign: 'center' }}>
-                            <button type="button" onClick={() => removeGradeRow(i)} title="Xóa dòng" style={{ width: '26px', height: '26px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--coral)', fontSize: '12px' }}>✕</button>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <button type="button" className="btn-ghost" onClick={addGradeRow} style={{ marginTop: '12px', fontSize: '12.5px', alignSelf: 'flex-start' }}>+ Thêm dòng</button>
                 <button className="btn-primary" onClick={handleSaveGrades} disabled={savingGrades} style={{ marginTop: '12px', width: '100%' }}>
                   {savingGrades ? 'Đang lưu...' : 'Lưu bảng điểm'}
                 </button>
