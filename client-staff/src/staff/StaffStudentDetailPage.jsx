@@ -143,6 +143,7 @@ export default function StaffStudentDetailPage({ studentId, onBack }) {
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Quê quán</div><div style={{ fontWeight: '600' }}>{student.hometown || 'Chưa cập nhật'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số điện thoại</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{student.phone || 'N/A'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Email</div><div style={{ fontWeight: '600' }}>{student.email || 'N/A'}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Nhân viên phụ trách</div><div style={{ fontWeight: '700', color: 'var(--teal)' }}>{student.rep || 'Chưa phân công'}</div></div>
             </div>
           </div>
 

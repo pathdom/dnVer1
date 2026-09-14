@@ -179,6 +179,7 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Email</div><div style={{ fontWeight: '600' }}>{student.email || 'N/A'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số CCCD/Hộ chiếu</div><div style={{ fontWeight: '600', fontFamily: 'var(--font-mono)' }}>{student.passport || 'P0123456'}</div></div>
               <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Trường THPT</div><div style={{ fontWeight: '600' }}>{student.school || 'THPT Chu Văn An'}</div></div>
+              <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Nhân viên phụ trách</div><div style={{ fontWeight: '700', color: 'var(--teal)' }}>{student.rep || 'Chưa phân công'}</div></div>
             </div>
           </div>
 

@@ -316,7 +316,7 @@ router.get('/students/:id', async (req, res) => {
       tongTienFormatted: formatVND(s.tongTien),
       avatar: s.name ? s.name.split(' ').slice(-2).map(n => n[0]).join('').toUpperCase() : 'HV',
       joinedDate: s.createdAt,
-      rep: s.repName || 'Lê Thu Hà',
+      rep: s.repName || 'Chưa phân công',
       gender: 'Nữ',
       passport: 'P' + String(s.id).padStart(7, '0'),
       school: 'THPT Chu Văn An, Hà Nội',
@@ -453,7 +453,8 @@ router.post('/students', async (req, res) => {
       statusText,
       ngayNhapHoc,
       tienDaDong,
-      tongTien
+      tongTien,
+      nhanVienId
     } = req.body;
 
     if (!name) {
@@ -461,11 +462,12 @@ router.post('/students', async (req, res) => {
     }
 
     const ngayNhapHocVal = ngayNhapHoc || new Date().toISOString().slice(0, 10);
+    const nhanVienIdVal = req.user.role === 'staff' ? req.user.id : (nhanVienId || null);
 
     const [result] = await db.query(`
       INSERT INTO hoc_vien
-      (ma_hoc_vien, ho_ten, email, so_dien_thoai, ngay_sinh, tinh_thanh_id, quoc_gia_id, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, created_at)
-      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+      (ma_hoc_vien, ho_ten, email, so_dien_thoai, ngay_sinh, tinh_thanh_id, quoc_gia_id, trang_thai_ho_so, lo_trinh, ngay_nhap_hoc, tien_da_dong, tong_tien, nhan_vien_id, created_at)
+      VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `, [
       name,
       email || null,
@@ -477,7 +479,8 @@ router.post('/students', async (req, res) => {
       program || 'Hồ sơ du học',
       ngayNhapHocVal,
       Number(tienDaDong) || 0,
-      Number(tongTien) || 0
+      Number(tongTien) || 0,
+      nhanVienIdVal
     ]);
 
     const ma_hoc_vien = 'HV' + String(result.insertId).padStart(3, '0');
@@ -517,15 +520,18 @@ router.put('/students/:id', async (req, res) => {
       statusText,
       ngayNhapHoc,
       tienDaDong,
-      tongTien
+      tongTien,
+      nhanVienId
     } = req.body;
 
     const isNumericId = /^\d+$/.test(targetId);
     const [beforeRows] = await db.query(
-      `SELECT id, tien_da_dong FROM hoc_vien WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      `SELECT id, tien_da_dong, nhan_vien_id FROM hoc_vien WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
       isNumericId ? [targetId, targetId] : [targetId]
     );
     const before = beforeRows[0];
+
+    const nhanVienIdVal = req.user.role === 'admin' ? (nhanVienId || null) : (before ? before.nhan_vien_id : null);
 
     const updateParams = [
       name,
@@ -537,7 +543,8 @@ router.put('/students/:id', async (req, res) => {
       statusText || 'Đang học tiếng',
       ngayNhapHoc || null,
       Number(tienDaDong) || 0,
-      Number(tongTien) || 0
+      Number(tongTien) || 0,
+      nhanVienIdVal
     ];
 
     const [result] = await db.query(`
@@ -552,7 +559,8 @@ router.put('/students/:id', async (req, res) => {
         trang_thai_ho_so = ?,
         ngay_nhap_hoc = ?,
         tien_da_dong = ?,
-        tong_tien = ?
+        tong_tien = ?,
+        nhan_vien_id = ?
       WHERE ma_hoc_vien = ? ${isNumericId ? 'OR id = ?' : ''}
     `, isNumericId ? [...updateParams, targetId, targetId] : [...updateParams, targetId]);
 
@@ -682,8 +690,10 @@ router.get('/employees/:id', async (req, res) => {
         IFNULL(DATE_FORMAT(hv.created_at, '%d/%m/%Y'), '21/08/2026') as createdAt
       FROM hoc_vien hv
       LEFT JOIN quoc_gia qg ON qg.id = hv.quoc_gia_id
+      WHERE hv.nhan_vien_id = ?
+      ORDER BY hv.id DESC
       LIMIT 10
-    `);
+    `, [emp.id]);
 
     res.json({
       ...emp,

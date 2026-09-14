@@ -6,6 +6,7 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
   const [students, setStudents] = useState([]);
   const [tinhThanh, setTinhThanh] = useState([]);
   const [quocGia, setQuocGia] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [filter, setFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -37,7 +38,8 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
     statusText: 'Đang học tiếng',
     ngayNhapHoc: '',
     tienDaDong: '',
-    tongTien: ''
+    tongTien: '',
+    nhanVienId: ''
   });
 
   // Form State
@@ -67,9 +69,17 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
       .catch(err => console.error('Fetch lookups error:', err));
   };
 
+  const fetchStaffList = () => {
+    apiFetch('/api/employees')
+      .then(res => res.json())
+      .then(d => setStaffList(d.employees || []))
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchStudents();
     fetchLookups();
+    fetchStaffList();
   }, []);
 
   const handleInputChange = (e) => {
@@ -95,7 +105,8 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
       statusText: student.statusText || 'Đang học tiếng',
       ngayNhapHoc: student.ngayNhapHocRaw || '',
       tienDaDong: student.tienDaDong || '',
-      tongTien: student.tongTien || ''
+      tongTien: student.tongTien || '',
+      nhanVienId: student.nhanVienId || ''
     });
     setIsModalOpen(true);
   };
@@ -460,6 +471,13 @@ export default function StudentsPage({ setCurrentPage, setSelectedStudentId }) {
                 <div>
                   <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Tổng học phí (VNĐ)</label>
                   <input type="number" name="tongTien" value={formData.tongTien} onChange={handleInputChange} placeholder="120000000" style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '600', color: 'var(--text)', marginBottom: '6px' }}>Nhân viên phụ trách</label>
+                  <select name="nhanVienId" value={formData.nhanVienId} onChange={handleInputChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '16px', border: '1.5px solid var(--border)', fontSize: '13.5px', background: '#fff' }}>
+                    <option value="">Chưa phân công</option>
+                    {staffList.map(s => <option key={s.dbId} value={s.dbId}>{s.name}</option>)}
+                  </select>
                 </div>
               </div>
 
