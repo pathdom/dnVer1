@@ -204,6 +204,10 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📊 Bảng điểm học tập</h3>
               {gradesMsg && <span style={{ fontSize: '12.5px', fontWeight: 600, color: gradesMsg.startsWith('✅') ? 'var(--green)' : 'var(--coral)' }}>{gradesMsg}</span>}
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', fontSize: '13px' }}>
+              <span style={{ color: 'var(--text-faint)' }}>🧑‍💼 Nhân viên phụ trách:</span>
+              <span style={{ fontWeight: '700', color: 'var(--teal)' }}>{student.rep || 'Chưa phân công'}</span>
+            </div>
             {gradesLoading ? (
               <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-faint)', fontSize: '13px' }}>Đang tải bảng điểm...</div>
             ) : (
@@ -212,23 +216,23 @@ export default function StudentDetailPage({ studentId, setCurrentPage }) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: 'left', padding: '8px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Kỹ năng</th>
+                        <th style={{ textAlign: 'left', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Kỹ năng</th>
                         {MONTHS.map(m => (
-                          <th key={m} style={{ textAlign: 'center', padding: '8px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Tháng {m}</th>
+                          <th key={m} style={{ textAlign: 'center', padding: '5px', color: 'var(--text-faint)', fontSize: '11.5px', textTransform: 'uppercase' }}>Tháng {m}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {GRADE_SKILLS.map(skill => (
                         <tr key={skill.key}>
-                          <td style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--navy)' }}>{skill.label}</td>
+                          <td style={{ padding: '4px 8px', fontWeight: 600, color: 'var(--navy)' }}>{skill.label}</td>
                           {MONTHS.map(m => (
-                            <td key={m} style={{ padding: '6px 8px', textAlign: 'center' }}>
+                            <td key={m} style={{ padding: '4px 8px', textAlign: 'center' }}>
                               <input
                                 type="number" min="0" max="10" step="0.1"
                                 value={grades[`thang${m}`]?.[skill.key] ?? ''}
                                 onChange={(e) => handleGradeChange(m, skill.key, e.target.value)}
-                                style={{ width: '56px', padding: '5px 6px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}
+                                style={{ width: '56px', padding: '4px 6px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}
                               />
                             </td>
                           ))}
