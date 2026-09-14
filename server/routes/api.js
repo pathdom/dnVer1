@@ -294,11 +294,13 @@ router.get('/students/:id', async (req, res) => {
         IFNULL(DATE_FORMAT(h.ngay_nhap_hoc, '%d/%m/%Y'), '01/09/2026') as ngayNhapHoc,
         h.nhan_vien_id as nhanVienId,
         nv.ho_ten as repName,
+        cd.ten_chuc_danh as repRole,
         IFNULL(h.tien_da_dong, 0) as tienDaDong,
         IFNULL(h.tong_tien, 0) as tongTien,
         IFNULL(DATE_FORMAT(h.created_at, '%d/%m/%Y'), DATE_FORMAT(NOW(), '%d/%m/%Y')) as createdAt
       FROM hoc_vien h
       LEFT JOIN nhan_vien nv ON h.nhan_vien_id = nv.id
+      LEFT JOIN chuc_danh cd ON cd.id = nv.chuc_danh_id
       LEFT JOIN tinh_thanh tt ON tt.id = h.tinh_thanh_id
       LEFT JOIN quoc_gia qg ON qg.id = h.quoc_gia_id
       WHERE h.ma_hoc_vien = ? ${isNumericId ? 'OR h.id = ?' : ''}
