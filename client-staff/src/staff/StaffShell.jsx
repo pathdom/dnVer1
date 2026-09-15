@@ -23,6 +23,11 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
   const [staffProfile, setStaffProfile] = useState(profile);
   const [companyLogo, setCompanyLogo] = useState(null);
 
+  const handleAvatarChange = (avatarUrl) => {
+    setStaffProfile(prev => ({ ...prev, avatarUrl }));
+    if (onAvatarChange) onAvatarChange(avatarUrl);
+  };
+
   useEffect(() => {
     apiFetch('/api/staff/profile')
       .then(res => res.json())
@@ -138,13 +143,13 @@ export default function StaffShell({ profile, onLogout, onAvatarChange }) {
         </div>
 
         {showProfile && (
-          <ProfileMenu profile={staffProfile} onClose={() => setShowProfile(false)} onLogout={onLogout} onAvatarChange={onAvatarChange} />
+          <ProfileMenu profile={staffProfile} onClose={() => setShowProfile(false)} onLogout={onLogout} onAvatarChange={handleAvatarChange} />
         )}
       </aside>
 
       <main className="main">
         {currentPage === 'home' && <StaffHomePage setCurrentPage={setCurrentPage} profile={staffProfile} />}
-        {currentPage === 'personal-profile' && <StaffPersonalProfilePage profile={staffProfile} onAvatarChange={onAvatarChange} />}
+        {currentPage === 'personal-profile' && <StaffPersonalProfilePage profile={staffProfile} onAvatarChange={handleAvatarChange} />}
         {currentPage === 'students' && <StaffStudentsPage />}
         {currentPage === 'customers' && (
           <StaffCustomersPage setCurrentPage={setCurrentPage} setSelectedCustomer={setSelectedCustomer} />

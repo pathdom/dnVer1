@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../lib/apiFetch';
+import { apiFetch, resolveUrl } from '../lib/apiFetch';
 import Topbar from '../components/Topbar';
 
 export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
@@ -325,7 +325,11 @@ export default function EmployeesPage({ setCurrentPage, setSelectedEmpId }) {
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div className="cell-person" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px', flex: 'none' }}>{emp.avatar}</div>
+                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '11px', flex: 'none', overflow: 'hidden' }}>
+                          {emp.avatarUrl ? (
+                            <img src={resolveUrl(emp.avatarUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : emp.avatar}
+                        </div>
                         <div className="cell-name" style={{ fontWeight: '700', color: 'var(--navy)' }}>{emp.name}</div>
                       </div>
                     </td>

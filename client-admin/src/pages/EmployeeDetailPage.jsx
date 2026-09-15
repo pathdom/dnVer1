@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../lib/apiFetch';
+import { apiFetch, resolveUrl } from '../lib/apiFetch';
 
 function formatSize(bytes) {
   if (!bytes) return '';
@@ -112,7 +112,11 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
 
       <div className="profile-header" style={{ marginTop: '12px' }}>
         <div className="profile-header-left">
-          <div className="avatar profile-avatar" style={{ background: 'var(--teal-soft)', color: 'var(--teal)', fontWeight: '700' }}>{emp.avatar || 'NV'}</div>
+          <div className="avatar profile-avatar" style={{ background: 'var(--teal-soft)', color: 'var(--teal)', fontWeight: '700', overflow: 'hidden' }}>
+            {emp.avatarUrl ? (
+              <img src={resolveUrl(emp.avatarUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (emp.avatar || 'NV')}
+          </div>
           <div>
             <div className="profile-name-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span className="profile-name" style={{ fontSize: '22px', fontWeight: '700' }}>{emp.name}</span>
