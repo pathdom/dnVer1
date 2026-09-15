@@ -711,6 +711,56 @@ router.get('/employees/:id', async (req, res) => {
   }
 });
 
+// GET /api/employees/:id/personal-profile — admin xem hồ sơ cá nhân nhân viên tự khai
+router.get('/employees/:id/personal-profile', async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const isNumericId = /^\d+$/.test(targetId);
+    const [empRows] = await db.query(
+      `SELECT id FROM nhan_vien WHERE ma_nhan_vien = ? ${isNumericId ? 'OR id = ?' : ''}`,
+      isNumericId ? [targetId, targetId] : [targetId]
+    );
+    if (empRows.length === 0) return res.status(404).json({ error: 'Không tìm thấy nhân viên' });
+    const nhanVienId = empRows[0].id;
+
+    const [rows] = await db.query(
+      "SELECT *, DATE_FORMAT(ngay_cap_cccd, '%Y-%m-%d') as ngay_cap_cccd FROM ho_so_ca_nhan_nhan_vien WHERE nhan_vien_id = ?",
+      [nhanVienId]
+    );
+    const [documents] = await db.query(
+      'SELECT id, ten_goc as tenGoc, loai, kich_thuoc as kichThuoc, DATE_FORMAT(created_at, "%d/%m/%Y") as ngayTai FROM tai_lieu_nhan_vien WHERE nhan_vien_id = ? ORDER BY id DESC',
+      [nhanVienId]
+    );
+    res.json({ profile: rows[0] || null, documents });
+  } catch (err) {
+    console.error('Lỗi GET /api/employees/:id/personal-profile:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// GET /api/staff-documents/:id/download — tải tài liệu, chỉ chính chủ hoặc admin
+router.get('/staff-documents/:id/download', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT nhan_vien_id as nhanVienId, ten_goc as tenGoc, duong_dan as duongDan FROM tai_lieu_nhan_vien WHERE id = ?',
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Không tìm thấy tài liệu' });
+    const doc = rows[0];
+
+    if (req.user.role !== 'admin' && req.user.id !== doc.nhanVienId) {
+      return res.status(403).json({ error: 'Bạn không có quyền truy cập tài liệu này' });
+    }
+
+    const filePath = path.join(__dirname, '..', doc.duongDan.replace(/^\/+/, ''));
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Tệp không còn tồn tại trên máy chủ' });
+    res.download(filePath, doc.tenGoc);
+  } catch (err) {
+    console.error('Lỗi GET /api/staff-documents/:id/download:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
 // POST /api/employees (Thêm nhân viên)
 router.post('/employees', async (req, res) => {
   try {

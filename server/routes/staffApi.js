@@ -1,9 +1,41 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { verifyPassword } = require('../lib/password');
+
+const avatarUploadDir = path.join(__dirname, '..', 'uploads', 'avatars');
+fs.mkdirSync(avatarUploadDir, { recursive: true });
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, avatarUploadDir),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname))
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/'))
+});
+
+const documentUploadDir = path.join(__dirname, '..', 'uploads', 'staff-documents');
+fs.mkdirSync(documentUploadDir, { recursive: true });
+const ALLOWED_DOCUMENT_MIMES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/zip',
+  'application/x-zip-compressed'
+];
+const documentUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, documentUploadDir),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + path.extname(file.originalname))
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, file.mimetype.startsWith('image/') || ALLOWED_DOCUMENT_MIMES.includes(file.mimetype))
+});
 
 // Staff Login: nhan_vien holds the profile, tai_khoan_nhan_vien holds the credentials
 router.post('/login', async (req, res) => {
@@ -344,6 +376,105 @@ router.post('/exams/:id/submit', async (req, res) => {
     }
     console.error('Lỗi nộp bài thi:', err);
     res.status(500).json({ error: 'Không thể nộp bài: ' + err.message });
+  }
+});
+
+// GET /api/staff/personal-profile — hồ sơ cá nhân tự khai của chính nhân viên
+router.get('/personal-profile', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT *, DATE_FORMAT(ngay_cap_cccd, '%Y-%m-%d') as ngay_cap_cccd FROM ho_so_ca_nhan_nhan_vien WHERE nhan_vien_id = ?",
+      [req.user.id]
+    );
+    const [documents] = await db.query(
+      'SELECT id, ten_goc as tenGoc, loai, kich_thuoc as kichThuoc, DATE_FORMAT(created_at, "%d/%m/%Y") as ngayTai FROM tai_lieu_nhan_vien WHERE nhan_vien_id = ? ORDER BY id DESC',
+      [req.user.id]
+    );
+    res.json({ profile: rows[0] || null, documents });
+  } catch (err) {
+    console.error('Lỗi GET /api/staff/personal-profile:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// PUT /api/staff/personal-profile — nhân viên tự lưu hồ sơ cá nhân (upsert)
+router.put('/personal-profile', async (req, res) => {
+  try {
+    const p = req.body.profile || {};
+    await db.query(`
+      INSERT INTO ho_so_ca_nhan_nhan_vien (
+        nhan_vien_id, so_cccd, ngay_cap_cccd, noi_cap_cccd,
+        dia_chi_thuong_tru, dia_chi_hien_tai,
+        lien_he_ho_ten, lien_he_sdt, lien_he_quan_he
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        so_cccd = VALUES(so_cccd), ngay_cap_cccd = VALUES(ngay_cap_cccd), noi_cap_cccd = VALUES(noi_cap_cccd),
+        dia_chi_thuong_tru = VALUES(dia_chi_thuong_tru), dia_chi_hien_tai = VALUES(dia_chi_hien_tai),
+        lien_he_ho_ten = VALUES(lien_he_ho_ten), lien_he_sdt = VALUES(lien_he_sdt), lien_he_quan_he = VALUES(lien_he_quan_he)
+    `, [
+      req.user.id,
+      p.so_cccd || null, p.ngay_cap_cccd || null, p.noi_cap_cccd || null,
+      p.dia_chi_thuong_tru || null, p.dia_chi_hien_tai || null,
+      p.lien_he_ho_ten || null, p.lien_he_sdt || null, p.lien_he_quan_he || null
+    ]);
+    res.json({ success: true, message: 'Đã lưu hồ sơ cá nhân' });
+  } catch (err) {
+    console.error('Lỗi PUT /api/staff/personal-profile:', err);
+    res.status(500).json({ error: 'Không thể lưu hồ sơ cá nhân: ' + err.message });
+  }
+});
+
+// POST /api/staff/upload-avatar — ảnh hồ sơ nhân viên
+router.post('/upload-avatar', avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Vui lòng chọn một ảnh' });
+    const avatarUrl = '/uploads/avatars/' + req.file.filename;
+    await db.query('UPDATE nhan_vien SET avatar_url = ? WHERE id = ?', [avatarUrl, req.user.id]);
+    res.json({ success: true, avatarUrl });
+  } catch (err) {
+    console.error('Lỗi tải ảnh hồ sơ nhân viên:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// POST /api/staff/documents — tải lên 1 tài liệu đính kèm
+router.post('/documents', documentUpload.single('document'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Vui lòng chọn một tệp (PDF/ảnh/Word/Zip, tối đa 10MB)' });
+    const ext = path.extname(req.file.originalname).replace('.', '').toUpperCase() || 'FILE';
+    const duongDan = '/uploads/staff-documents/' + req.file.filename;
+    const [result] = await db.query(
+      'INSERT INTO tai_lieu_nhan_vien (nhan_vien_id, ten_goc, duong_dan, loai, kich_thuoc) VALUES (?, ?, ?, ?, ?)',
+      [req.user.id, req.file.originalname, duongDan, ext, req.file.size]
+    );
+    res.json({ success: true, id: result.insertId, message: 'Đã tải lên tài liệu' });
+  } catch (err) {
+    console.error('Lỗi tải lên tài liệu nhân viên:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
+});
+
+// DELETE /api/staff/documents/:id — chỉ chính chủ mới được xóa tài liệu của mình
+router.delete('/documents/:id', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT duong_dan FROM tai_lieu_nhan_vien WHERE id = ? AND nhan_vien_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Không tìm thấy tài liệu' });
+
+    const [result] = await db.query(
+      'DELETE FROM tai_lieu_nhan_vien WHERE id = ? AND nhan_vien_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (result.affectedRows > 0) {
+      const filePath = path.join(__dirname, '..', rows[0].duong_dan.replace(/^\/+/, ''));
+      fs.unlink(filePath, () => {});
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Lỗi xóa tài liệu nhân viên:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
   }
 });
 

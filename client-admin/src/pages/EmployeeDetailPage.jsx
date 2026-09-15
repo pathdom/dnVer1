@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/apiFetch';
 
+function formatSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedStudentId }) {
   const [emp, setEmp] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [personalProfile, setPersonalProfile] = useState(null);
+  const [personalDocuments, setPersonalDocuments] = useState([]);
+  const [personalLoading, setPersonalLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -43,6 +52,32 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
           .catch(() => setLoading(false));
       });
   }, [empId]);
+
+  useEffect(() => {
+    if (!emp) return;
+    setPersonalLoading(true);
+    apiFetch(`/api/employees/${emp.id}/personal-profile`)
+      .then(res => res.json())
+      .then(d => {
+        setPersonalProfile(d.profile || null);
+        setPersonalDocuments(d.documents || []);
+      })
+      .catch(() => { setPersonalProfile(null); setPersonalDocuments([]); })
+      .finally(() => setPersonalLoading(false));
+  }, [emp?.id]);
+
+  const handleDownloadDoc = (doc) => {
+    apiFetch(`/api/staff-documents/${doc.id}/download`)
+      .then(res => res.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = doc.tenGoc;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(() => alert('Không thể tải tài liệu'));
+  };
 
   if (loading) {
     return (
@@ -165,6 +200,77 @@ export default function EmployeeDetailPage({ empId, setCurrentPage, setSelectedS
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="panel" style={{ background: 'var(--surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', marginTop: '20px' }}>
+        <div className="panel-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '14px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--navy)' }}>📋 Hồ sơ cá nhân (nhân viên tự khai)</h3>
+        </div>
+        {personalLoading ? (
+          <div style={{ color: 'var(--text-faint)', fontSize: '13px' }}>Đang tải hồ sơ cá nhân...</div>
+        ) : !personalProfile && personalDocuments.length === 0 ? (
+          <div style={{ color: 'var(--text-faint)', fontSize: '13px' }}>Nhân viên chưa khai hồ sơ cá nhân.</div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Giấy tờ tùy thân</div>
+                <div className="info-grid" style={{ display: 'grid', gap: '12px', fontSize: '13.5px' }}>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số CCCD/Hộ chiếu</div><div style={{ fontWeight: '600' }}>{personalProfile?.so_cccd || 'Chưa cập nhật'}</div></div>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Ngày cấp</div><div style={{ fontWeight: '600' }}>{personalProfile?.ngay_cap_cccd || 'Chưa cập nhật'}</div></div>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Nơi cấp</div><div style={{ fontWeight: '600' }}>{personalProfile?.noi_cap_cccd || 'Chưa cập nhật'}</div></div>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Địa chỉ cư trú</div>
+                <div className="info-grid" style={{ display: 'grid', gap: '12px', fontSize: '13.5px' }}>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Địa chỉ thường trú</div><div style={{ fontWeight: '600' }}>{personalProfile?.dia_chi_thuong_tru || 'Chưa cập nhật'}</div></div>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Chỗ ở hiện tại</div><div style={{ fontWeight: '600' }}>{personalProfile?.dia_chi_hien_tai || 'Chưa cập nhật'}</div></div>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Liên hệ khẩn cấp</div>
+                <div className="info-grid" style={{ display: 'grid', gap: '12px', fontSize: '13.5px' }}>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Họ tên người liên hệ</div><div style={{ fontWeight: '600' }}>{personalProfile?.lien_he_ho_ten || 'Chưa cập nhật'}</div></div>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Số điện thoại</div><div style={{ fontWeight: '600' }}>{personalProfile?.lien_he_sdt || 'Chưa cập nhật'}</div></div>
+                  <div><div style={{ fontSize: '12px', color: 'var(--text-faint)' }}>Mối quan hệ</div><div style={{ fontWeight: '600' }}>{personalProfile?.lien_he_quan_he || 'Chưa cập nhật'}</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--teal)', marginBottom: '10px', textTransform: 'uppercase' }}>Tài liệu đính kèm ({personalDocuments.length})</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ width: '100%', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg)' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Tên tài liệu</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Loại</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Kích thước</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Ngày tải</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {personalDocuments.length === 0 ? (
+                    <tr><td colSpan="5" style={{ padding: '16px', textAlign: 'center', color: 'var(--text-faint)' }}>Chưa có tài liệu nào.</td></tr>
+                  ) : (
+                    personalDocuments.map(doc => (
+                      <tr key={doc.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 10px', fontWeight: '600' }}>{doc.tenGoc}</td>
+                        <td style={{ padding: '8px 10px' }}><span className="chip" style={{ cursor: 'default' }}>{doc.loai}</span></td>
+                        <td style={{ padding: '8px 10px', color: 'var(--text-soft)' }}>{formatSize(doc.kichThuoc)}</td>
+                        <td style={{ padding: '8px 10px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{doc.ngayTai}</td>
+                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <button className="row-action" title="Tải xuống" onClick={() => handleDownloadDoc(doc)} style={{ background: 'var(--teal-soft)', border: '1px solid var(--teal-light)', borderRadius: '8px', padding: '6px', cursor: 'pointer' }}>⬇️</button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
